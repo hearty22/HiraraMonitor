@@ -1,3 +1,4 @@
+pub mod components;
 pub mod cpu_panel;
 pub mod disks_panel;
 pub mod layout;
@@ -6,6 +7,7 @@ pub mod network_panel;
 pub mod processes_panel;
 pub mod sensors_panel;
 pub mod system_panel;
+pub mod theme;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ProcessSort {
