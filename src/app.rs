@@ -26,6 +26,7 @@ impl HiraraApp {
     pub fn new() -> Self {
         let config = AppConfig::from_args();
         let history_len = config.history_len;
+        let initial_view = config.initial_view;
         let process_table = ProcessTableState {
             page_size: config.process_page_size,
             ..ProcessTableState::default()
@@ -37,7 +38,7 @@ impl HiraraApp {
             collector,
             latest: None,
             collector_error: None,
-            selected_view: View::Cpu,
+            selected_view: initial_view,
             process_table,
             cpu_history: HistoryBuffer::new(history_len),
             memory_history: HistoryBuffer::new(history_len),

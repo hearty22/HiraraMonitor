@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use egui::Ui;
 
 use super::theme::{BORDER, CARD_BG, MUTED, TEXT};
@@ -21,6 +19,7 @@ pub fn section_card(ui: &mut Ui, title: &str, content: impl FnOnce(&mut Ui)) {
     });
 }
 
+#[allow(dead_code)]
 pub fn metric_card(ui: &mut Ui, label: &str, value: &str, accent: egui::Color32) {
     card(ui, CARD_BG, |ui| {
         ui.label(egui::RichText::new(label).color(MUTED).size(11.0));
@@ -28,6 +27,7 @@ pub fn metric_card(ui: &mut Ui, label: &str, value: &str, accent: egui::Color32)
     });
 }
 
+#[allow(dead_code)]
 pub fn badge(ui: &mut Ui, text: &str, color: egui::Color32) {
     egui::Frame::none()
         .fill(color.linear_multiply(0.18))

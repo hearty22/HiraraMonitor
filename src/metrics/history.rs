@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use std::collections::VecDeque;
 
 #[derive(Clone, Debug)]
@@ -23,10 +21,12 @@ impl HistoryBuffer {
         self.points.push_back((x, y));
     }
 
+    #[allow(dead_code)]
     pub fn points(&self) -> &VecDeque<(f64, f64)> {
         &self.points
     }
 
+    #[allow(dead_code)]
     pub fn last_x(&self) -> Option<f64> {
         self.points.back().map(|point| point.0)
     }
@@ -37,11 +37,13 @@ impl HistoryBuffer {
 
     /// Returns history points with X coordinates relative to the oldest
     /// retained sample, useful for stable rolling graph rendering.
+    #[allow(dead_code)]
     pub fn rolling_points(&self) -> Vec<[f64; 2]> {
         let origin = self.points.front().map(|point| point.0).unwrap_or(0.0);
         self.points.iter().map(|(x, y)| [x - origin, *y]).collect()
     }
 
+    #[allow(dead_code)]
     pub fn clear(&mut self) {
         self.points.clear();
     }
@@ -69,5 +71,30 @@ mod tests {
         history.push(3.0, 30.0);
         assert_eq!(history.len(), 2);
         assert_eq!(history.points().front().copied(), Some((2.0, 20.0)));
+    }
+
+    #[test]
+    fn keeps_latest_after_eviction() {
+        let mut history = HistoryBuffer::new(2);
+        history.push(1.0, 10.0);
+        history.push(2.0, 20.0);
+        history.push(3.0, 30.0);
+        assert_eq!(history.points().back().copied(), Some((3.0, 30.0)));
+    }
+
+    #[test]
+    fn clears_points() {
+        let mut history = HistoryBuffer::new(2);
+        history.push(1.0, 10.0);
+        history.clear();
+        assert!(history.is_empty());
+        assert_eq!(history.len(), 0);
+    }
+
+    #[test]
+    fn rejects_zero_capacity() {
+        let history = HistoryBuffer::new(0);
+        assert_eq!(history.len(), 0);
+        assert!(history.is_empty());
     }
 }

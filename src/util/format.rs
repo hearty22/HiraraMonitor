@@ -44,7 +44,7 @@ pub fn format_epoch_time(seconds: f64) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{format_bytes, format_percent};
+    use super::{format_bytes, format_bytes_per_second, format_epoch_time, format_percent};
 
     #[test]
     fn formats_bytes() {
@@ -53,7 +53,19 @@ mod tests {
     }
 
     #[test]
+    fn formats_bytes_per_second() {
+        assert_eq!(format_bytes_per_second(1024.0), "1.0 KB/s");
+    }
+
+    #[test]
     fn formats_percent() {
         assert_eq!(format_percent(12.34), "12.3%");
+    }
+
+    #[test]
+    fn formats_epoch_time() {
+        let formatted = format_epoch_time(86400.0);
+        assert!(!formatted.is_empty());
+        assert!(formatted.len() >= 5);
     }
 }
