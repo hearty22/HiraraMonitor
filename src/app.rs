@@ -34,6 +34,9 @@ impl HiraraApp {
             filter: String::new(),
             page: 0,
             selected_pid: None,
+            pending_action: None,
+            pending_action_open: false,
+            action_status: None,
         };
         let collector = Collector::spawn(config.clone());
         let saved_config = PersistedConfig::from(&config);

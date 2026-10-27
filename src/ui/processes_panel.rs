@@ -1,7 +1,10 @@
 use egui::Ui;
 
 use crate::metrics::{ProcessSnapshot, SystemSnapshot};
-use crate::ui::{ProcessSort, ProcessTableState};
+use crate::platform;
+use crate::ui::{
+    PendingProcessAction, ProcessActionKind, ProcessSort, ProcessTableState,
+};
 
 const PID_WIDTH: f32 = 70.0;
 const CPU_WIDTH: f32 = 80.0;
@@ -12,6 +15,18 @@ const ROW_HEIGHT: f32 = 18.0;
 
 pub fn show(ui: &mut Ui, snapshot: Option<&SystemSnapshot>, state: &mut ProcessTableState) {
     ui.heading("Procesos");
+
+    if let Some((message, is_error)) = state.action_status.clone() {
+        let color = if is_error {
+            egui::Color32::from_rgb(245, 105, 85)
+        } else {
+            egui::Color32::from_rgb(95, 185, 110)
+        };
+        ui.colored_label(color, message);
+        if ui.button("Cerrar").clicked() {
+            state.action_status = None;
+        }
+    }
 
     let name_width =
         (ui.available_width() - PID_WIDTH - CPU_WIDTH - MEMORY_WIDTH - STATE_WIDTH - USER_WIDTH)
@@ -251,10 +266,91 @@ pub fn show(ui: &mut Ui, snapshot: Option<&SystemSnapshot>, state: &mut ProcessT
                         ui.end_row();
                     }
                 });
+
+            if is_protected(process.pid) {
+                ui.label("Acciones deshabilitadas para este proceso.");
+            } else {
+                ui.horizontal(|ui| {
+                    if ui.button("Terminar (SIGTERM)").clicked() {
+                        state.pending_action = Some(PendingProcessAction {
+                            pid: process.pid,
+                            name: process.name.clone(),
+                            kind: ProcessActionKind::Terminate,
+                        });
+                        state.pending_action_open = true;
+                    }
+                    if ui.button("Forzar (SIGKILL)").clicked() {
+                        state.pending_action = Some(PendingProcessAction {
+                            pid: process.pid,
+                            name: process.name.clone(),
+                            kind: ProcessActionKind::Kill,
+                        });
+                        state.pending_action_open = true;
+                    }
+                });
+            }
         } else {
             state.selected_pid = None;
         }
+
+        if let Some(action) = state.pending_action.clone() {
+            if !state.pending_action_open {
+                state.pending_action = None;
+            } else {
+                let mut open = state.pending_action_open;
+                egui::Window::new("Confirmar acción")
+                    .open(&mut open)
+                    .show(ui.ctx(), |ui| {
+                        let signal = match action.kind {
+                            ProcessActionKind::Terminate => "SIGTERM (Terminate)",
+                            ProcessActionKind::Kill => "SIGKILL (Kill)",
+                        };
+                        ui.label(format!(
+                            "Se enviará {} al proceso {} ({})?",
+                            signal, action.pid, action.name
+                        ));
+                        ui.horizontal(|ui| {
+                            if ui.button("Confirmar").clicked() {
+                                let label = match action.kind {
+                                    ProcessActionKind::Terminate => "Terminar",
+                                    ProcessActionKind::Kill => "Forzar",
+                                };
+                                let result = match action.kind {
+                                    ProcessActionKind::Terminate => {
+                                        platform::terminate_process(action.pid)
+                                    }
+                                    ProcessActionKind::Kill => platform::kill_process(action.pid),
+                                };
+                                state.action_status = Some(match result {
+                                    Ok(()) => (
+                                        format!("{} pid {} realizado", label, action.pid),
+                                        false,
+                                    ),
+                                    Err(error) => (
+                                        format!("{} pid {} falló: {}", label, action.pid, error),
+                                        true,
+                                    ),
+                                });
+                                state.pending_action = None;
+                                state.pending_action_open = false;
+                            }
+                            if ui.button("Cancelar").clicked() {
+                                state.pending_action = None;
+                                state.pending_action_open = false;
+                            }
+                        });
+                    });
+                state.pending_action_open = open;
+                if !open {
+                    state.pending_action = None;
+                }
+            }
+        }
     }
+}
+
+fn is_protected(pid: usize) -> bool {
+    pid == 1 || pid == std::process::id() as usize
 }
 
 fn top_name(filtered: &[&ProcessSnapshot], sort: ProcessSort) -> String {
