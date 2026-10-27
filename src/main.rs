@@ -1,3 +1,8 @@
+//! HiraraMonitor desktop system monitor.
+//!
+//! The application runs metric collection in a background thread and renders
+//! the latest snapshot with egui.
+
 mod app;
 mod config;
 mod metrics;

@@ -1,3 +1,4 @@
+/// Formats a byte count into a compact human-readable string.
 #[allow(dead_code)]
 pub fn format_bytes(bytes: u64) -> String {
     const UNITS: [&str; 5] = ["B", "KB", "MB", "GB", "TB"];
