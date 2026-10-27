@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::config::{AppConfig, Theme, View};
+use crate::config::{AppConfig, PersistedConfig, Theme, View};
 use crate::metrics::{Collector, CollectorHandle, HistoryBuffer, SystemSnapshot};
 use crate::ui::{
     cpu_panel, disks_panel, memory_panel, network_panel, processes_panel, sensors_panel,
@@ -14,6 +14,8 @@ pub struct HiraraApp {
     latest: Option<Arc<SystemSnapshot>>,
     collector_error: Option<String>,
     selected_view: View,
+    config_saved: PersistedConfig,
+    config_dirty_at: Option<std::time::Instant>,
     process_table: ProcessTableState,
     cpu_history: HistoryBuffer,
     memory_history: HistoryBuffer,
@@ -23,22 +25,27 @@ pub struct HiraraApp {
 }
 
 impl HiraraApp {
-    pub fn new() -> Self {
-        let config = AppConfig::from_args();
+    pub fn new(config: AppConfig) -> Self {
         let history_len = config.history_len;
-        let initial_view = config.initial_view;
+        let selected_view = config.initial_view;
         let process_table = ProcessTableState {
             page_size: config.process_page_size,
-            ..ProcessTableState::default()
+            sort: config.process_sort,
+            filter: String::new(),
+            page: 0,
+            selected_pid: None,
         };
         let collector = Collector::spawn(config.clone());
+        let saved_config = PersistedConfig::from(&config);
 
         Self {
             config,
             collector,
             latest: None,
             collector_error: None,
-            selected_view: initial_view,
+            selected_view,
+            config_saved: saved_config,
+            config_dirty_at: None,
             process_table,
             cpu_history: HistoryBuffer::new(history_len),
             memory_history: HistoryBuffer::new(history_len),
@@ -95,13 +102,36 @@ impl HiraraApp {
             }
         }
     }
+
+    fn reconcile_persisted_config(&mut self) {
+        self.config.process_sort = self.process_table.sort;
+        self.config.process_page_size = self.process_table.page_size;
+        self.config.initial_view = self.selected_view;
+
+        let current = PersistedConfig::from(&self.config);
+        if current != self.config_saved {
+            if self.config_dirty_at.is_none() {
+                self.config_dirty_at = Some(std::time::Instant::now());
+            }
+        } else {
+            self.config_dirty_at = None;
+        }
+
+        if let Some(started_at) = self.config_dirty_at {
+            if started_at.elapsed() >= std::time::Duration::from_secs(1) {
+                let _ = self.config.save();
+                self.config_saved = current;
+                self.config_dirty_at = None;
+            }
+        }
+    }
 }
 
 impl eframe::App for HiraraApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.apply_theme(ctx);
         self.receive_metrics();
-
+        self.reconcile_persisted_config();
         ctx.input(|input| {
             if input.key_pressed(egui::Key::Num1) {
                 self.selected_view = View::Cpu;
@@ -205,6 +235,10 @@ impl eframe::App for HiraraApp {
             egui::TopBottomPanel::bottom("status_bar").show(ctx, |ui| {
                 ui.colored_label(egui::Color32::RED, format!("Collector error: {}", error));
             });
+        }
+
+        if ctx.input(|input| input.viewport().close_requested()) {
+            let _ = self.config.save();
         }
     }
 }

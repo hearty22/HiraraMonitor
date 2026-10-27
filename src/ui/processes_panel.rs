@@ -92,7 +92,8 @@ pub fn show(ui: &mut Ui, snapshot: Option<&SystemSnapshot>, state: &mut ProcessT
     let total_pages = if filtered.is_empty() {
         1
     } else {
-        filtered.len().div_ceil(state.page_size)    };
+        filtered.len().div_ceil(state.page_size)
+    };
     if state.page >= total_pages {
         state.page = total_pages.saturating_sub(1);
     }

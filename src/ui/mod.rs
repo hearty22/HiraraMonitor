@@ -9,8 +9,9 @@ pub mod sensors_panel;
 pub mod system_panel;
 pub mod theme;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum ProcessSort {
+    #[default]
     CpuDesc,
     MemoryDesc,
     NameAsc,
