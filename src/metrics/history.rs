@@ -27,6 +27,11 @@ impl HistoryBuffer {
         &self.points
     }
 
+    pub fn rolling_points(&self) -> Vec<[f64; 2]> {
+        let origin = self.points.front().map(|point| point.0).unwrap_or(0.0);
+        self.points.iter().map(|(x, y)| [x - origin, *y]).collect()
+    }
+
     pub fn clear(&mut self) {
         self.points.clear();
     }

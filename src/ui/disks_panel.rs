@@ -27,16 +27,13 @@ pub fn show(ui: &mut Ui, snapshot: Option<&SystemSnapshot>) {
                 disk.total_bytes.saturating_sub(disk.available_bytes),
             ));
             ui.label(format::format_bytes(disk.total_bytes));
-            ui.label(format!(
-                "{:.1}%",
-                if disk.total_bytes == 0 {
-                    0.0
-                } else {
-                    (disk.total_bytes.saturating_sub(disk.available_bytes)) as f64
-                        / disk.total_bytes as f64
-                        * 100.0
-                }
-            ));
+            let disk_ratio = if disk.total_bytes == 0 {
+                0.0
+            } else {
+                (disk.total_bytes.saturating_sub(disk.available_bytes)) as f32
+                    / disk.total_bytes as f32
+            };
+            ui.add(egui::ProgressBar::new(disk_ratio).desired_width(90.0));
             ui.label(format::format_bytes_per_second(disk.read_bytes_per_sec));
             ui.label(format::format_bytes_per_second(disk.write_bytes_per_sec));
             ui.end_row();

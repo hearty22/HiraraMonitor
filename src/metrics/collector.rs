@@ -71,10 +71,38 @@ fn run_collector(
         components_sys.refresh();
         users_sys.refresh_list();
 
+        // CPU temperature: keep a coarse global value if sysinfo exposes a CPU component.
+        let cpu_temperature_celsius = components_sys
+            .list()
+            .iter()
+            .find(|component| {
+                let label = component.label().to_lowercase();
+                label.contains("cpu") || label.contains("package") || label.contains("core")
+            })
+            .map(|component| component.temperature());
+
+        let per_core_temperatures: Vec<Option<f32>> = system
+            .cpus()
+            .iter()
+            .enumerate()
+            .map(|(index, _)| {
+                components_sys
+                    .list()
+                    .iter()
+                    .find(|component| {
+                        let label = component.label().to_lowercase();
+                        label.contains(&format!("core {}", index))
+                            || label == format!("core {}", index)
+                    })
+                    .map(|component| component.temperature())
+            })
+            .collect();
+
         // Memory
         let memory = MemorySnapshot {
             total_bytes: system.total_memory(),
             used_bytes: system.used_memory(),
+            free_bytes: system.free_memory(),
             available_bytes: system.available_memory(),
             swap_total_bytes: system.total_swap(),
             swap_used_bytes: system.used_swap(),
@@ -84,9 +112,20 @@ fn run_collector(
 
         // CPU
         let cpu_global = system.global_cpu_usage();
-        let cpu_cores: Vec<f32> = system.cpus().iter().map(|cpu| cpu.cpu_usage()).collect();
-        let cpu_frequencies_mhz: Vec<u64> =
-            system.cpus().iter().map(|cpu| cpu.frequency()).collect();
+        let cpu_cores: Vec<CpuCoreSnapshot> = system
+            .cpus()
+            .iter()
+            .enumerate()
+            .map(|(index, cpu)| CpuCoreSnapshot {
+                usage: cpu.cpu_usage(),
+                frequency_mhz: cpu.frequency(),
+                temperature_celsius: per_core_temperatures
+                    .get(index)
+                    .copied()
+                    .flatten()
+                    .or(cpu_temperature_celsius),
+            })
+            .collect();
 
         // Disks
         let current_disk_io = platform::disk_io();
@@ -179,6 +218,15 @@ fn run_collector(
                     memory_bytes: process.memory(),
                     state: format!("{:?}", process.status()),
                     user,
+                    command: process
+                        .cmd()
+                        .iter()
+                        .map(|argument| argument.to_string_lossy().to_string())
+                        .collect(),
+                    executable_path: process
+                        .exe()
+                        .map(|path| path.to_string_lossy().to_string())
+                        .unwrap_or_default(),
                 }
             })
             .collect();
@@ -207,8 +255,8 @@ fn run_collector(
         let snapshot = SystemSnapshot {
             captured_at: now,
             cpu_global,
+            cpu_temperature_celsius,
             cpu_cores,
-            cpu_frequencies_mhz,
             memory,
             disks,
             networks,

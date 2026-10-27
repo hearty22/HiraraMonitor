@@ -3,9 +3,17 @@
 use std::time::Instant;
 
 #[derive(Clone, Debug, Default)]
+pub struct CpuCoreSnapshot {
+    pub usage: f32,
+    pub frequency_mhz: u64,
+    pub temperature_celsius: Option<f32>,
+}
+
+#[derive(Clone, Debug, Default)]
 pub struct MemorySnapshot {
     pub total_bytes: u64,
     pub used_bytes: u64,
+    pub free_bytes: u64,
     pub available_bytes: u64,
     pub swap_total_bytes: u64,
     pub swap_used_bytes: u64,
@@ -42,6 +50,8 @@ pub struct ProcessSnapshot {
     pub memory_bytes: u64,
     pub state: String,
     pub user: String,
+    pub command: Vec<String>,
+    pub executable_path: String,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -70,8 +80,8 @@ pub struct SystemMetadata {
 pub struct SystemSnapshot {
     pub captured_at: Instant,
     pub cpu_global: f32,
-    pub cpu_cores: Vec<f32>,
-    pub cpu_frequencies_mhz: Vec<u64>,
+    pub cpu_temperature_celsius: Option<f32>,
+    pub cpu_cores: Vec<CpuCoreSnapshot>,
     pub memory: MemorySnapshot,
     pub disks: Vec<DiskSnapshot>,
     pub networks: Vec<NetworkSnapshot>,

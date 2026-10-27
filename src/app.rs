@@ -16,6 +16,7 @@ pub struct HiraraApp {
     process_table: ProcessTableState,
     cpu_history: HistoryBuffer,
     memory_history: HistoryBuffer,
+    swap_history: HistoryBuffer,
     network_rx_history: HistoryBuffer,
     network_tx_history: HistoryBuffer,
     sample_index: f64,
@@ -40,6 +41,7 @@ impl HiraraApp {
             process_table,
             cpu_history: HistoryBuffer::new(history_len),
             memory_history: HistoryBuffer::new(history_len),
+            swap_history: HistoryBuffer::new(history_len),
             network_rx_history: HistoryBuffer::new(history_len),
             network_tx_history: HistoryBuffer::new(history_len),
             sample_index: 0.0,
@@ -47,10 +49,20 @@ impl HiraraApp {
     }
 
     fn apply_theme(&self, ctx: &egui::Context) {
-        match self.config.theme {
-            Theme::Light => ctx.set_visuals(egui::Visuals::light()),
-            Theme::Dark => ctx.set_visuals(egui::Visuals::dark()),
+        let mut visuals = match self.config.theme {
+            Theme::Light => egui::Visuals::light(),
+            Theme::Dark => egui::Visuals::dark(),
+        };
+
+        if self.config.theme == crate::config::Theme::Dark {
+            visuals.panel_fill = egui::Color32::from_rgb(22, 24, 29);
+            visuals.faint_bg_color = egui::Color32::from_rgb(30, 33, 40);
+        } else {
+            visuals.panel_fill = egui::Color32::from_rgb(244, 246, 250);
+            visuals.faint_bg_color = egui::Color32::from_rgb(232, 236, 243);
         }
+
+        ctx.set_visuals(visuals);
     }
 
     fn ingest_snapshot(&mut self, snapshot: &SystemSnapshot) {
@@ -60,6 +72,13 @@ impl HiraraApp {
         self.cpu_history.push(x, snapshot.cpu_global as f64);
         self.memory_history
             .push(x, snapshot.memory_used_percent() as f64);
+
+        let swap_percent = if snapshot.memory.swap_total_bytes == 0 {
+            0.0
+        } else {
+            snapshot.memory.swap_used_bytes as f64 / snapshot.memory.swap_total_bytes as f64 * 100.0
+        };
+        self.swap_history.push(x, swap_percent);
 
         let rx: f64 = snapshot
             .networks
@@ -93,6 +112,37 @@ impl eframe::App for HiraraApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.apply_theme(ctx);
         self.receive_metrics();
+
+        ctx.input(|input| {
+            if input.key_pressed(egui::Key::Num1) {
+                self.selected_view = View::Cpu;
+            }
+            if input.key_pressed(egui::Key::Num2) {
+                self.selected_view = View::Memory;
+            }
+            if input.key_pressed(egui::Key::Num3) {
+                self.selected_view = View::Disks;
+            }
+            if input.key_pressed(egui::Key::Num4) {
+                self.selected_view = View::Network;
+            }
+            if input.key_pressed(egui::Key::Num5) {
+                self.selected_view = View::Processes;
+            }
+            if input.key_pressed(egui::Key::Num6) {
+                self.selected_view = View::Sensors;
+            }
+            if input.key_pressed(egui::Key::Num7) {
+                self.selected_view = View::System;
+            }
+            if input.key_pressed(egui::Key::T) {
+                self.config.theme = match self.config.theme {
+                    Theme::Light => Theme::Dark,
+                    Theme::Dark => Theme::Light,
+                };
+            }
+        });
+
         ctx.request_repaint_after(std::time::Duration::from_millis(100));
 
         egui::TopBottomPanel::top("top_bar").show(ctx, |ui| {
@@ -142,7 +192,12 @@ impl eframe::App for HiraraApp {
 
         egui::CentralPanel::default().show(ctx, |ui| match self.selected_view {
             View::Cpu => cpu_panel::show(ui, self.latest.as_deref(), &self.cpu_history),
-            View::Memory => memory_panel::show(ui, self.latest.as_deref(), &self.memory_history),
+            View::Memory => memory_panel::show(
+                ui,
+                self.latest.as_deref(),
+                &self.memory_history,
+                &self.swap_history,
+            ),
             View::Disks => disks_panel::show(ui, self.latest.as_deref()),
             View::Network => network_panel::show(
                 ui,

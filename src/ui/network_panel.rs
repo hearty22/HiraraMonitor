@@ -40,12 +40,12 @@ pub fn show(
     use egui_plot::{Line, Plot, PlotPoints};
 
     Plot::new("net_rx_plot").height(120.0).show(ui, |plot_ui| {
-        let points: PlotPoints = rx_history.points().iter().map(|(x, y)| [*x, *y]).collect();
-        plot_ui.line(Line::new(points).name("RX"));
+        let points = rx_history.rolling_points();
+        plot_ui.line(Line::new(PlotPoints::new(points)).name("RX"));
     });
 
     Plot::new("net_tx_plot").height(120.0).show(ui, |plot_ui| {
-        let points: PlotPoints = tx_history.points().iter().map(|(x, y)| [*x, *y]).collect();
-        plot_ui.line(Line::new(points).name("TX"));
+        let points = tx_history.rolling_points();
+        plot_ui.line(Line::new(PlotPoints::new(points)).name("TX"));
     });
 }

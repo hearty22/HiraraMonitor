@@ -32,6 +32,7 @@ pub struct ProcessTableState {
     pub sort: ProcessSort,
     pub page: usize,
     pub page_size: usize,
+    pub selected_pid: Option<usize>,
 }
 
 impl Default for ProcessTableState {
@@ -41,6 +42,7 @@ impl Default for ProcessTableState {
             sort: ProcessSort::CpuDesc,
             page: 0,
             page_size: 25,
+            selected_pid: None,
         }
     }
 }
