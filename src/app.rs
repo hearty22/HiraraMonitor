@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::time::Instant;
 
 use crate::config::{AppConfig, Theme, View};
 use crate::metrics::{Collector, CollectorHandle, HistoryBuffer, SystemSnapshot};
@@ -19,7 +20,7 @@ pub struct HiraraApp {
     swap_history: HistoryBuffer,
     network_rx_history: HistoryBuffer,
     network_tx_history: HistoryBuffer,
-    sample_index: f64,
+    start_time: Instant,
 }
 
 impl HiraraApp {
@@ -44,7 +45,7 @@ impl HiraraApp {
             swap_history: HistoryBuffer::new(history_len),
             network_rx_history: HistoryBuffer::new(history_len),
             network_tx_history: HistoryBuffer::new(history_len),
-            sample_index: 0.0,
+            start_time: Instant::now(),
         }
     }
 
@@ -66,8 +67,10 @@ impl HiraraApp {
     }
 
     fn ingest_snapshot(&mut self, snapshot: &SystemSnapshot) {
-        let x = self.sample_index;
-        self.sample_index += 1.0;
+        let x = snapshot
+            .captured_at
+            .duration_since(self.start_time)
+            .as_secs_f64();
 
         self.cpu_history.push(x, snapshot.cpu_global as f64);
         self.memory_history

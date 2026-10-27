@@ -27,6 +27,14 @@ impl HistoryBuffer {
         &self.points
     }
 
+    pub fn last_x(&self) -> Option<f64> {
+        self.points.back().map(|point| point.0)
+    }
+
+    pub fn raw_points(&self) -> Vec<[f64; 2]> {
+        self.points.iter().map(|(x, y)| [*x, *y]).collect()
+    }
+
     pub fn rolling_points(&self) -> Vec<[f64; 2]> {
         let origin = self.points.front().map(|point| point.0).unwrap_or(0.0);
         self.points.iter().map(|(x, y)| [x - origin, *y]).collect()

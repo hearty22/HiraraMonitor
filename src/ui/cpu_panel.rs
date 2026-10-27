@@ -29,13 +29,31 @@ pub fn show(ui: &mut Ui, snapshot: Option<&SystemSnapshot>, cpu_history: &Histor
 
     ui.label(format!("Núcleos: {}", snapshot.cpu_cores.len()));
 
+    let points = cpu_history.raw_points();
+    let (min_x, max_x) = if points.is_empty() {
+        (0.0, 60.0)
+    } else {
+        let last = points[points.len() - 1][0];
+        let min = (last - 60.0).max(0.0);
+        let max = if last < 60.0 { 60.0 } else { last };
+        (min, max)
+    };
+
     Plot::new("cpu_history_plot")
         .height(180.0)
-        .include_y(0.0)
-        .include_y(100.0)
+        .x_axis_label("Tiempo (s)")
+        .y_axis_label("Uso CPU (%)")
+        .allow_drag(false)
+        .allow_zoom(false)
+        .x_axis_formatter(|mark, _| format!("{:.0}s", mark.value))
+        .y_axis_formatter(|mark, _| format!("{:.0}%", mark.value))
         .show(ui, |plot_ui| {
-            let points = cpu_history.rolling_points();
-            plot_ui.line(Line::new(PlotPoints::new(points)).name("Global"));
+            let mut bounds = plot_ui.plot_bounds();
+            bounds.set_x_center_width((min_x + max_x) / 2.0, (max_x - min_x).max(1.0));
+            bounds.set_y_center_height(50.0, 100.0);
+            plot_ui.set_plot_bounds(bounds);
+            let line_points = PlotPoints::new(points);
+            plot_ui.line(Line::new(line_points).name("Global"));
         });
 
     ui.separator();
