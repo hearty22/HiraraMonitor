@@ -1,0 +1,15 @@
+[package]
+name = "hirara-monitor"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+eframe = "0.28"
+egui = "0.28"
+egui_plot = "0.28"
+sysinfo = "0.31"
+serde = { version = "1", features = ["derive"] }
+toml = "0.8"
+anyhow = "1"
+thiserror = "2"
+chrono = { version = "0.4", features = ["clock"] }
