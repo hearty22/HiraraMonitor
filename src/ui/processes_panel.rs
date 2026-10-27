@@ -3,8 +3,19 @@ use egui::Ui;
 use crate::metrics::{ProcessSnapshot, SystemSnapshot};
 use crate::ui::{ProcessSort, ProcessTableState};
 
+const PID_WIDTH: f32 = 70.0;
+const CPU_WIDTH: f32 = 80.0;
+const MEMORY_WIDTH: f32 = 110.0;
+const STATE_WIDTH: f32 = 95.0;
+const USER_WIDTH: f32 = 120.0;
+const ROW_HEIGHT: f32 = 18.0;
+
 pub fn show(ui: &mut Ui, snapshot: Option<&SystemSnapshot>, state: &mut ProcessTableState) {
     ui.heading("Procesos");
+
+    let name_width =
+        (ui.available_width() - PID_WIDTH - CPU_WIDTH - MEMORY_WIDTH - STATE_WIDTH - USER_WIDTH)
+            .max(120.0);
 
     ui.horizontal(|ui| {
         ui.label("Filtro:");
@@ -57,6 +68,7 @@ pub fn show(ui: &mut Ui, snapshot: Option<&SystemSnapshot>, state: &mut ProcessT
                 process.name.to_lowercase().contains(&needle)
                     || process.pid.to_string().contains(&needle)
                     || process.user.to_lowercase().contains(&needle)
+                    || process.command.join(" ").to_lowercase().contains(&needle)
             }
         })
         .collect();
@@ -72,11 +84,8 @@ pub fn show(ui: &mut Ui, snapshot: Option<&SystemSnapshot>, state: &mut ProcessT
     });
 
     ui.label(format!(
-        "Top CPU: {}",
-        top_name(&filtered, ProcessSort::CpuDesc)
-    ));
-    ui.label(format!(
-        "Top memoria: {}",
+        "Top CPU: {}  |  Top memoria: {}",
+        top_name(&filtered, ProcessSort::CpuDesc),
         top_name(&filtered, ProcessSort::MemoryDesc)
     ));
 
@@ -93,43 +102,87 @@ pub fn show(ui: &mut Ui, snapshot: Option<&SystemSnapshot>, state: &mut ProcessT
     let end = (start + state.page_size).min(filtered.len());
 
     egui::ScrollArea::vertical()
-        .max_height(260.0)
+        .auto_shrink([false, false])
         .show(ui, |ui| {
+            ui.set_min_width(ui.available_width());
             egui::Grid::new("processes_grid")
                 .striped(true)
+                .spacing([8.0, 4.0])
                 .show(ui, |ui| {
-                    if ui.button("PID").clicked() {
+                    if ui
+                        .add_sized(
+                            [PID_WIDTH, ROW_HEIGHT],
+                            egui::Button::new("PID").frame(false),
+                        )
+                        .clicked()
+                    {
                         state.sort = ProcessSort::PidAsc;
                     }
-                    if ui.button("Nombre").clicked() {
+                    if ui
+                        .add_sized(
+                            [name_width, ROW_HEIGHT],
+                            egui::Button::new("Nombre").frame(false),
+                        )
+                        .clicked()
+                    {
                         state.sort = ProcessSort::NameAsc;
                     }
-                    if ui.button("CPU").clicked() {
+                    if ui
+                        .add_sized(
+                            [CPU_WIDTH, ROW_HEIGHT],
+                            egui::Button::new("CPU").frame(false),
+                        )
+                        .clicked()
+                    {
                         state.sort = ProcessSort::CpuDesc;
                     }
-                    if ui.button("Memoria").clicked() {
+                    if ui
+                        .add_sized(
+                            [MEMORY_WIDTH, ROW_HEIGHT],
+                            egui::Button::new("Memoria").frame(false),
+                        )
+                        .clicked()
+                    {
                         state.sort = ProcessSort::MemoryDesc;
                     }
-                    ui.label("Estado");
-                    ui.label("Usuario");
+                    ui.add_sized([STATE_WIDTH, ROW_HEIGHT], egui::Label::new("Estado"));
+                    ui.add_sized([USER_WIDTH, ROW_HEIGHT], egui::Label::new("Usuario"));
                     ui.end_row();
 
                     for process in &filtered[start..end] {
                         let selected = state.selected_pid == Some(process.pid);
                         if ui
-                            .selectable_label(selected, process.pid.to_string())
+                            .add_sized(
+                                [PID_WIDTH, ROW_HEIGHT],
+                                egui::SelectableLabel::new(selected, process.pid.to_string()),
+                            )
                             .clicked()
                         {
                             state.selected_pid = Some(process.pid);
                         }
-                        ui.label(&process.name);
-                        ui.label(format!("{:.1}%", process.cpu_usage));
-                        ui.label(format!(
-                            "{:.1} MB",
-                            process.memory_bytes as f64 / 1024.0 / 1024.0
-                        ));
-                        ui.label(&process.state);
-                        ui.label(&process.user);
+                        ui.add_sized(
+                            [name_width, ROW_HEIGHT],
+                            egui::Label::new(&process.name).truncate(),
+                        );
+                        ui.add_sized(
+                            [CPU_WIDTH, ROW_HEIGHT],
+                            egui::Label::new(format!("{:.1}%", process.cpu_usage)),
+                        );
+                        ui.add_sized(
+                            [MEMORY_WIDTH, ROW_HEIGHT],
+                            egui::Label::new(format!(
+                                "{:.1} MB",
+                                process.memory_bytes as f64 / 1024.0 / 1024.0
+                            )),
+                        );
+                        ui.add_sized(
+                            [STATE_WIDTH, ROW_HEIGHT],
+                            egui::Label::new(&process.state).truncate(),
+                        );
+                        ui.add_sized(
+                            [USER_WIDTH, ROW_HEIGHT],
+                            egui::Label::new(&process.user).truncate(),
+                        );
                         ui.end_row();
                     }
                 });
