@@ -1,7 +1,12 @@
 [package]
 name = "hirara-monitor"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
+description = "Native desktop system monitor built with Rust and egui"
+license = "MIT"
+authors = ["F.E.Esclnt"]
+keywords = ["system-monitor", "egui", "rust", "linux", "performance"]
+categories = ["visualization", "command-line-utilities"]
 
 [dependencies]
 eframe = "0.28"

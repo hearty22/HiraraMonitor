@@ -48,20 +48,7 @@ impl HiraraApp {
     }
 
     fn apply_theme(&self, ctx: &egui::Context) {
-        let mut visuals = match self.config.theme {
-            Theme::Light => egui::Visuals::light(),
-            Theme::Dark => egui::Visuals::dark(),
-        };
-
-        if self.config.theme == crate::config::Theme::Dark {
-            visuals.panel_fill = egui::Color32::from_rgb(22, 24, 29);
-            visuals.faint_bg_color = egui::Color32::from_rgb(30, 33, 40);
-        } else {
-            visuals.panel_fill = egui::Color32::from_rgb(244, 246, 250);
-            visuals.faint_bg_color = egui::Color32::from_rgb(232, 236, 243);
-        }
-
-        ctx.set_visuals(visuals);
+        crate::ui::theme::apply(ctx, self.config.theme == crate::config::Theme::Dark);
     }
 
     fn ingest_snapshot(&mut self, snapshot: &SystemSnapshot) {

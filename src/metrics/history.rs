@@ -35,6 +35,8 @@ impl HistoryBuffer {
         self.points.iter().map(|(x, y)| [*x, *y]).collect()
     }
 
+    /// Returns history points with X coordinates relative to the oldest
+    /// retained sample, useful for stable rolling graph rendering.
     pub fn rolling_points(&self) -> Vec<[f64; 2]> {
         let origin = self.points.front().map(|point| point.0).unwrap_or(0.0);
         self.points.iter().map(|(x, y)| [x - origin, *y]).collect()
