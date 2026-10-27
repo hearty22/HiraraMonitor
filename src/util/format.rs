@@ -27,6 +27,20 @@ pub fn format_percent(value: f32) -> String {
     format!("{:.1}%", value)
 }
 
+#[allow(dead_code)]
+pub fn format_epoch_time(seconds: f64) -> String {
+    if let Some(datetime) =
+        chrono::DateTime::from_timestamp(seconds as i64, (seconds.fract() * 1_000_000_000.0) as u32)
+    {
+        datetime
+            .with_timezone(&chrono::Local)
+            .format("%H:%M:%S")
+            .to_string()
+    } else {
+        format!("{:.0}", seconds)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{format_bytes, format_percent};

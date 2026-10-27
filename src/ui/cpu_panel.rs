@@ -41,11 +41,11 @@ pub fn show(ui: &mut Ui, snapshot: Option<&SystemSnapshot>, cpu_history: &Histor
 
     Plot::new("cpu_history_plot")
         .height(180.0)
-        .x_axis_label("Tiempo (s)")
+        .x_axis_label("Hora")
         .y_axis_label("Uso CPU (%)")
         .allow_drag(false)
         .allow_zoom(false)
-        .x_axis_formatter(|mark, _| format!("{:.0}s", mark.value))
+        .x_axis_formatter(|mark, _| format::format_epoch_time(mark.value))
         .y_axis_formatter(|mark, _| format!("{:.0}%", mark.value))
         .show(ui, |plot_ui| {
             let mut bounds = plot_ui.plot_bounds();

@@ -81,11 +81,11 @@ pub fn show(
     ui.label("RX histórico:");
     Plot::new("net_rx_plot")
         .height(110.0)
-        .x_axis_label("Tiempo (s)")
+        .x_axis_label("Hora")
         .y_axis_label("RX (B/s)")
         .allow_drag(false)
         .allow_zoom(false)
-        .x_axis_formatter(|mark, _| format!("{:.0}s", mark.value))
+        .x_axis_formatter(|mark, _| format::format_epoch_time(mark.value))
         .y_axis_formatter(|mark, _| format::format_bytes_per_second(mark.value))
         .show(ui, |plot_ui| {
             let mut bounds = plot_ui.plot_bounds();
@@ -100,11 +100,11 @@ pub fn show(
     ui.label("TX histórico:");
     Plot::new("net_tx_plot")
         .height(110.0)
-        .x_axis_label("Tiempo (s)")
+        .x_axis_label("Hora")
         .y_axis_label("TX (B/s)")
         .allow_drag(false)
         .allow_zoom(false)
-        .x_axis_formatter(|mark, _| format!("{:.0}s", mark.value))
+        .x_axis_formatter(|mark, _| format::format_epoch_time(mark.value))
         .y_axis_formatter(|mark, _| format::format_bytes_per_second(mark.value))
         .show(ui, |plot_ui| {
             let mut bounds = plot_ui.plot_bounds();
