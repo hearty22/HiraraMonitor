@@ -101,6 +101,17 @@ pub fn show(ui: &mut Ui, snapshot: Option<&SystemSnapshot>, state: &mut ProcessT
     let start = state.page * state.page_size;
     let end = (start + state.page_size).min(filtered.len());
 
+    ui.horizontal(|ui| {
+        if ui.button("Anterior").clicked() && state.page > 0 {
+            state.page -= 1;
+        }
+        ui.label(format!("Página {} / {}", state.page + 1, total_pages));
+        if ui.button("Siguiente").clicked() && state.page + 1 < total_pages {
+            state.page += 1;
+        }
+        ui.label(format!("Total: {}", filtered.len()));
+    });
+
     egui::ScrollArea::vertical()
         .auto_shrink([false, false])
         .show(ui, |ui| {
@@ -187,17 +198,6 @@ pub fn show(ui: &mut Ui, snapshot: Option<&SystemSnapshot>, state: &mut ProcessT
                     }
                 });
         });
-
-    ui.horizontal(|ui| {
-        if ui.button("Anterior").clicked() && state.page > 0 {
-            state.page -= 1;
-        }
-        ui.label(format!("Página {} / {}", state.page + 1, total_pages));
-        if ui.button("Siguiente").clicked() && state.page + 1 < total_pages {
-            state.page += 1;
-        }
-        ui.label(format!("Total: {}", filtered.len()));
-    });
 
     if let Some(selected_pid) = state.selected_pid {
         if let Some(process) = snapshot.processes.iter().find(|p| p.pid == selected_pid) {
