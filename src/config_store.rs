@@ -3,15 +3,21 @@ use std::path::{Path, PathBuf};
 
 use crate::config::{AppConfig, PersistedConfig};
 
+/// Loads and stores TOML application preferences.
+/// Loads and stores TOML application preferences.
 pub struct ConfigStore {
     path: Option<PathBuf>,
 }
 
 impl ConfigStore {
+    /// Creates a new store bound to an optional file path.
+    /// Creates a new store bound to an optional file path.
     pub fn new(path: Option<PathBuf>) -> Self {
         Self { path }
     }
 
+    /// Returns the default Linux config path from `HOME`.
+    /// Returns the default Linux config path from `HOME`.
     pub fn default_path() -> Option<PathBuf> {
         std::env::var_os("HOME").map(PathBuf::from).map(|home| {
             home.join(".config")
@@ -26,10 +32,14 @@ impl ConfigStore {
     }
 
     #[allow(dead_code)]
+    /// Loads the persisted file, returning defaults on any read or parse error.
+    /// Loads the persisted file, returning defaults on any read or parse error.
     pub fn load(&self) -> PersistedConfig {
         self.load_or_default_lossy()
     }
 
+    /// Loads config or applies fallback validation.
+    /// Loads config or applies fallback validation.
     pub fn load_or_default(&self) -> AppConfig {
         let persisted = self.load_or_default_lossy();
         let normalized = AppConfig::from_persisted(persisted, self.path.clone());
@@ -61,6 +71,8 @@ impl ConfigStore {
         persisted
     }
 
+    /// Atomically writes configuration to the target path.
+    /// Atomically writes configuration to the target path.
     pub fn save(&self, config: &PersistedConfig) -> std::io::Result<()> {
         let Some(path) = &self.path else {
             return Ok(());
