@@ -7,7 +7,7 @@ use super::theme::{BORDER, CARD_BG, MUTED, TEXT};
 pub fn card(ui: &mut Ui, fill: egui::Color32, content: impl FnOnce(&mut Ui)) {
     egui::Frame::none()
         .fill(fill)
-        .stroke(egui::Stroke::new(1.0, BORDER))
+        .stroke(egui::Stroke::new(1.0_f32, BORDER))
         .rounding(egui::Rounding::same(8.0))
         .inner_margin(egui::Margin::same(12.0))
         .show(ui, content);
@@ -39,7 +39,7 @@ pub fn metric_card(ui: &mut Ui, label: &str, value: &str, accent: egui::Color32)
 pub fn badge(ui: &mut Ui, text: &str, color: egui::Color32) {
     egui::Frame::none()
         .fill(color.linear_multiply(0.18))
-        .stroke(egui::Stroke::new(1.0, color))
+        .stroke(egui::Stroke::new(1.0_f32, color))
         .rounding(egui::Rounding::same(10.0))
         .inner_margin(egui::Margin::symmetric(8.0, 3.0))
         .show(ui, |ui| {
