@@ -2,7 +2,8 @@ name: Release
 
 on:
   push:
-    branches: [main]
+    tags:
+      - "v*"
 
 permissions:
   contents: write
@@ -21,14 +22,13 @@ jobs:
       - run: cargo build --release
       - name: Package
         run: |
-          sha=$(git rev-parse --short HEAD)
-          cp target/release/hirara-monitor "hirara-monitor-${sha}-x86_64-linux"
-          sha256sum "hirara-monitor-${sha}-x86_64-linux" > "sha256sums-${sha}.txt"
+          version="${GITHUB_REF_NAME#v}"
+          cp target/release/hirara-monitor "hirara-monitor-${version}-x86_64-linux"
+          sha256sum "hirara-monitor-${version}-x86_64-linux" > "sha256sums-${version}.txt"
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: "main-${{ github.sha }}"
-          name: "Build ${{ github.sha }}"
-          prerelease: true
+          tag_name: "${{ github.ref_name }}"
+          name: "${{ github.ref_name }}"
           files: |
             hirara-monitor-*-x86_64-linux
             sha256sums-*.txt
