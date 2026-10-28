@@ -2,9 +2,7 @@ use egui::Ui;
 
 use crate::metrics::{ProcessSnapshot, SystemSnapshot};
 use crate::platform;
-use crate::ui::{
-    PendingProcessAction, ProcessActionKind, ProcessSort, ProcessTableState,
-};
+use crate::ui::{PendingProcessAction, ProcessActionKind, ProcessSort, ProcessTableState};
 
 const PID_WIDTH: f32 = 70.0;
 const CPU_WIDTH: f32 = 80.0;
@@ -214,138 +212,173 @@ pub fn show(ui: &mut Ui, snapshot: Option<&SystemSnapshot>, state: &mut ProcessT
                 });
         });
 
-    if let Some(selected_pid) = state.selected_pid {
-        if let Some(process) = snapshot.processes.iter().find(|p| p.pid == selected_pid) {
-            ui.separator();
-            ui.heading("Detalle del proceso");
-            egui::Grid::new("process_detail_grid")
-                .striped(true)
-                .show(ui, |ui| {
-                    ui.label("PID");
-                    ui.label(process.pid.to_string());
-                    ui.end_row();
+    let selected_process = state.selected_pid.and_then(|selected_pid| {
+        snapshot
+            .processes
+            .iter()
+            .find(|process| process.pid == selected_pid)
+            .cloned()
+    });
 
-                    if let Some(parent_pid) = process.parent_pid {
-                        ui.label("PPID");
-                        ui.label(parent_pid.to_string());
-                        ui.end_row();
-                    }
+    if state.selected_pid.is_some() && selected_process.is_none() {
+        state.selected_pid = None;
+        state.pending_action = None;
+        state.pending_action_open = false;
+    }
 
-                    ui.label("Nombre");
-                    ui.label(&process.name);
-                    ui.end_row();
-
-                    ui.label("CPU");
-                    ui.label(format!("{:.1}%", process.cpu_usage));
-                    ui.end_row();
-
-                    ui.label("Memoria");
-                    ui.label(format!(
-                        "{:.1} MB",
-                        process.memory_bytes as f64 / 1024.0 / 1024.0
-                    ));
-                    ui.end_row();
-
-                    ui.label("Estado");
-                    ui.label(&process.state);
-                    ui.end_row();
-
-                    ui.label("Usuario");
-                    ui.label(&process.user);
-                    ui.end_row();
-
-                    if !process.executable_path.is_empty() {
-                        ui.label("Executable");
-                        ui.label(&process.executable_path);
-                        ui.end_row();
-                    }
-
-                    if !process.command.is_empty() {
-                        ui.label("Comando");
-                        ui.label(process.command.join(" "));
-                        ui.end_row();
-                    }
-                });
-
-            if is_protected(process.pid) {
-                ui.label("Acciones deshabilitadas para este proceso.");
-            } else {
-                ui.horizontal(|ui| {
-                    if ui.button("Terminar (SIGTERM)").clicked() {
-                        state.pending_action = Some(PendingProcessAction {
-                            pid: process.pid,
-                            name: process.name.clone(),
-                            kind: ProcessActionKind::Terminate,
-                        });
-                        state.pending_action_open = true;
-                    }
-                    if ui.button("Forzar (SIGKILL)").clicked() {
-                        state.pending_action = Some(PendingProcessAction {
-                            pid: process.pid,
-                            name: process.name.clone(),
-                            kind: ProcessActionKind::Kill,
-                        });
-                        state.pending_action_open = true;
-                    }
-                });
-            }
-        } else {
+    if let Some(process) = selected_process {
+        let mut detail_open = true;
+        egui::Window::new("Detalle del proceso")
+            .default_width(420.0)
+            .resizable(false)
+            .collapsible(false)
+            .open(&mut detail_open)
+            .show(ui.ctx(), |ui| {
+                render_process_detail(ui, &process, state);
+            });
+        if !detail_open {
             state.selected_pid = None;
+            state.pending_action = None;
+            state.pending_action_open = false;
         }
+    }
 
-        if let Some(action) = state.pending_action.clone() {
-            if !state.pending_action_open {
-                state.pending_action = None;
-            } else {
-                let mut open = state.pending_action_open;
-                egui::Window::new("Confirmar acción")
-                    .open(&mut open)
-                    .show(ui.ctx(), |ui| {
-                        let signal = match action.kind {
-                            ProcessActionKind::Terminate => "SIGTERM (Terminate)",
-                            ProcessActionKind::Kill => "SIGKILL (Kill)",
-                        };
-                        ui.label(format!(
-                            "Se enviará {} al proceso {} ({})?",
-                            signal, action.pid, action.name
-                        ));
-                        ui.horizontal(|ui| {
-                            if ui.button("Confirmar").clicked() {
-                                let label = match action.kind {
-                                    ProcessActionKind::Terminate => "Terminar",
-                                    ProcessActionKind::Kill => "Forzar",
-                                };
-                                let result = match action.kind {
-                                    ProcessActionKind::Terminate => {
-                                        platform::terminate_process(action.pid)
-                                    }
-                                    ProcessActionKind::Kill => platform::kill_process(action.pid),
-                                };
-                                state.action_status = Some(match result {
-                                    Ok(()) => (
-                                        format!("{} pid {} realizado", label, action.pid),
-                                        false,
-                                    ),
-                                    Err(error) => (
-                                        format!("{} pid {} falló: {}", label, action.pid, error),
-                                        true,
-                                    ),
-                                });
-                                state.pending_action = None;
-                                state.pending_action_open = false;
-                            }
-                            if ui.button("Cancelar").clicked() {
-                                state.pending_action = None;
-                                state.pending_action_open = false;
-                            }
-                        });
+    if let Some(action) = state.pending_action.clone() {
+        if !state.pending_action_open {
+            state.pending_action = None;
+        } else {
+            let mut open = state.pending_action_open;
+            egui::Window::new("Confirmar accion")
+                .open(&mut open)
+                .show(ui.ctx(), |ui| {
+                    let signal = match action.kind {
+                        ProcessActionKind::Terminate => "SIGTERM (Terminate)",
+                        ProcessActionKind::Kill => "SIGKILL (Kill)",
+                    };
+                    ui.label(format!(
+                        "Se enviara {} al proceso {} ({})?",
+                        signal, action.pid, action.name
+                    ));
+                    ui.horizontal(|ui| {
+                        if ui.button("Confirmar").clicked() {
+                            let label = match action.kind {
+                                ProcessActionKind::Terminate => "Terminar",
+                                ProcessActionKind::Kill => "Forzar",
+                            };
+                            let result = match action.kind {
+                                ProcessActionKind::Terminate => {
+                                    platform::terminate_process(action.pid)
+                                }
+                                ProcessActionKind::Kill => platform::kill_process(action.pid),
+                            };
+                            state.action_status = Some(match result {
+                                Ok(()) => {
+                                    (format!("{} pid {} realizado", label, action.pid), false)
+                                }
+                                Err(error) => (
+                                    format!("{} pid {} fallo: {}", label, action.pid, error),
+                                    true,
+                                ),
+                            });
+                            state.pending_action = None;
+                            state.pending_action_open = false;
+                        }
+                        if ui.button("Cancelar").clicked() {
+                            state.pending_action = None;
+                            state.pending_action_open = false;
+                        }
                     });
-                state.pending_action_open = open;
-                if !open {
-                    state.pending_action = None;
-                }
+                });
+            state.pending_action_open = open;
+            if !open {
+                state.pending_action = None;
             }
         }
+    }
+}
+
+fn render_process_detail(
+    ui: &mut egui::Ui,
+    process: &ProcessSnapshot,
+    state: &mut ProcessTableState,
+) {
+    ui.heading("Detalle del proceso");
+    if ui.button("Cerrar detalle").clicked() {
+        state.selected_pid = None;
+        state.pending_action = None;
+        state.pending_action_open = false;
+    }
+    ui.separator();
+    egui::Grid::new("process_detail_grid")
+        .striped(true)
+        .show(ui, |ui| {
+            ui.label("PID");
+            ui.label(process.pid.to_string());
+            ui.end_row();
+
+            if let Some(parent_pid) = process.parent_pid {
+                ui.label("PPID");
+                ui.label(parent_pid.to_string());
+                ui.end_row();
+            }
+
+            ui.label("Nombre");
+            ui.label(&process.name);
+            ui.end_row();
+
+            ui.label("CPU");
+            ui.label(format!("{:.1}%", process.cpu_usage));
+            ui.end_row();
+
+            ui.label("Memoria");
+            ui.label(format!(
+                "{:.1} MB",
+                process.memory_bytes as f64 / 1024.0 / 1024.0
+            ));
+            ui.end_row();
+
+            ui.label("Estado");
+            ui.label(&process.state);
+            ui.end_row();
+
+            ui.label("Usuario");
+            ui.label(&process.user);
+            ui.end_row();
+
+            if !process.executable_path.is_empty() {
+                ui.label("Executable");
+                ui.label(&process.executable_path);
+                ui.end_row();
+            }
+
+            if !process.command.is_empty() {
+                ui.label("Comando");
+                ui.label(process.command.join(" "));
+                ui.end_row();
+            }
+        });
+
+    if is_protected(process.pid) {
+        ui.label("Acciones deshabilitadas para este proceso.");
+    } else {
+        ui.horizontal(|ui| {
+            if ui.button("Terminar (SIGTERM)").clicked() {
+                state.pending_action = Some(PendingProcessAction {
+                    pid: process.pid,
+                    name: process.name.clone(),
+                    kind: ProcessActionKind::Terminate,
+                });
+                state.pending_action_open = true;
+            }
+            if ui.button("Forzar (SIGKILL)").clicked() {
+                state.pending_action = Some(PendingProcessAction {
+                    pid: process.pid,
+                    name: process.name.clone(),
+                    kind: ProcessActionKind::Kill,
+                });
+                state.pending_action_open = true;
+            }
+        });
     }
 }
 

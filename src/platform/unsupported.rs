@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use crate::platform::ProcessActions;
 use super::DiskIo;
+use crate::platform::ProcessActions;
 
 pub struct UnsupportedProcessActions;
 

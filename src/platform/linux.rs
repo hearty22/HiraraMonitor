@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use crate::platform::ProcessActions;
 use super::DiskIo;
+use crate::platform::ProcessActions;
 use sysinfo::{Pid, ProcessesToUpdate, Signal, System};
 
 #[derive(Clone, Copy)]
@@ -22,7 +22,7 @@ pub fn terminate_process(pid: usize) -> Result<(), String> {
 }
 
 pub fn disk_io() -> HashMap<String, DiskIo> {
-        use std::fs;
+    use std::fs;
 
     let mut result = HashMap::new();
     let Ok(content) = fs::read_to_string("/proc/diskstats") else {
@@ -52,7 +52,6 @@ pub fn disk_io() -> HashMap<String, DiskIo> {
 pub fn kill_process(pid: usize) -> Result<(), String> {
     <LinuxProcessActions as ProcessActions>::kill(pid)
 }
-
 
 fn send(pid: usize, signal: Signal) -> Result<(), String> {
     let mut system = System::new();
