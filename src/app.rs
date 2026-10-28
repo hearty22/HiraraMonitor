@@ -11,6 +11,7 @@ use crate::ui::{
 pub struct HiraraApp {
     config: AppConfig,
     collector: CollectorHandle,
+    applied_theme: Option<Theme>,
     latest: Option<Arc<SystemSnapshot>>,
     collector_error: Option<String>,
     selected_view: View,
@@ -46,6 +47,7 @@ impl HiraraApp {
         Self {
             config,
             collector,
+            applied_theme: None,
             latest: None,
             collector_error: None,
             selected_view,
@@ -134,7 +136,10 @@ impl HiraraApp {
 
 impl eframe::App for HiraraApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        self.apply_theme(ctx);
+        if self.applied_theme != Some(self.config.theme) {
+            self.apply_theme(ctx);
+            self.applied_theme = Some(self.config.theme);
+        }
         self.receive_metrics();
         self.reconcile_persisted_config();
         ctx.input(|input| {
@@ -167,7 +172,9 @@ impl eframe::App for HiraraApp {
             }
         });
 
-        ctx.request_repaint_after(std::time::Duration::from_millis(100));
+        ctx.request_repaint_after(std::time::Duration::from_millis(
+            self.config.refresh_interval.as_millis().clamp(16, 250) as u64,
+        ));
 
         egui::TopBottomPanel::top("top_bar").show(ctx, |ui| {
             ui.horizontal(|ui| {
