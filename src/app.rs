@@ -8,6 +8,9 @@ use crate::ui::{
     system_panel, ProcessTableState,
 };
 
+#[cfg(feature = "system-tray")]
+use crate::system_tray::{TrayAction, TrayState};
+
 pub struct HiraraApp {
     config: AppConfig,
     collector: CollectorHandle,
@@ -19,6 +22,10 @@ pub struct HiraraApp {
     config_dirty_at: Option<std::time::Instant>,
     process_table: ProcessTableState,
     cpu_history: HistoryBuffer,
+    #[cfg(feature = "system-tray")]
+    window_visible: bool,
+    #[cfg(feature = "system-tray")]
+    tray: Option<TrayState>,
     memory_history: HistoryBuffer,
     swap_history: HistoryBuffer,
     network_rx_history: HistoryBuffer,
@@ -55,6 +62,10 @@ impl HiraraApp {
             config_dirty_at: None,
             process_table,
             cpu_history: HistoryBuffer::new(history_len),
+            #[cfg(feature = "system-tray")]
+            window_visible: true,
+            #[cfg(feature = "system-tray")]
+            tray: None,
             memory_history: HistoryBuffer::new(history_len),
             swap_history: HistoryBuffer::new(history_len),
             network_rx_history: HistoryBuffer::new(history_len),
@@ -142,6 +153,34 @@ impl eframe::App for HiraraApp {
         }
         self.receive_metrics();
         self.reconcile_persisted_config();
+
+        #[cfg(feature = "system-tray")]
+        if self.tray.is_none() {
+            self.tray = crate::system_tray::TrayState::new();
+        }
+
+        #[cfg(feature = "system-tray")]
+        if let Some(tray) = &mut self.tray {
+            if let Some(snapshot) = self.latest.as_ref() {
+                tray.update_metrics(snapshot);
+            }
+            loop {
+                match tray.poll_action() {
+                    Some(TrayAction::Restore) => {
+                        self.window_visible = true;
+                        ctx.send_viewport_cmd(egui::ViewportCommand::Visible(true));
+                        ctx.send_viewport_cmd(egui::ViewportCommand::Focus);
+                        ctx.request_repaint();
+                    }
+                    Some(TrayAction::Quit) => {
+                        let _ = self.config.save();
+                        ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                        ctx.request_repaint();
+                    }
+                    None => break,
+                }
+            }
+        }
         ctx.input(|input| {
             if input.key_pressed(egui::Key::Num1) {
                 self.selected_view = View::Cpu;
@@ -175,6 +214,11 @@ impl eframe::App for HiraraApp {
         ctx.request_repaint_after(std::time::Duration::from_millis(
             self.config.refresh_interval.as_millis().clamp(16, 250) as u64,
         ));
+
+        #[cfg(feature = "system-tray")]
+        if !self.window_visible {
+            ctx.request_repaint_after(std::time::Duration::from_millis(500));
+        }
 
         egui::TopBottomPanel::top("top_bar").show(ctx, |ui| {
             ui.horizontal(|ui| {
@@ -266,6 +310,17 @@ impl eframe::App for HiraraApp {
         }
 
         if ctx.input(|input| input.viewport().close_requested()) {
+            #[cfg(feature = "system-tray")]
+            if self.tray.is_some() {
+                let _ = self.config.save();
+                ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
+                ctx.send_viewport_cmd(egui::ViewportCommand::Visible(false));
+                self.window_visible = false;
+                ctx.request_repaint_after(std::time::Duration::from_millis(500));
+            } else {
+                let _ = self.config.save();
+            }
+            #[cfg(not(feature = "system-tray"))]
             let _ = self.config.save();
         }
     }

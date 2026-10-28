@@ -8,6 +8,8 @@ mod config;
 mod config_store;
 mod metrics;
 mod platform;
+#[cfg(feature = "system-tray")]
+mod system_tray;
 mod ui;
 mod util;
 
