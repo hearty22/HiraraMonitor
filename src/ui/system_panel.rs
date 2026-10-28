@@ -92,7 +92,7 @@ fn row(ui: &mut Ui, label: &str, value: &str) {
 fn info_card(ui: &mut Ui, title: &str, value: &str, color: egui::Color32) {
     egui::Frame::group(ui.style())
         .fill(color.linear_multiply(0.18))
-        .stroke(egui::Stroke::new(1.0, color))
+        .stroke(egui::Stroke::new(1.0_f32, color))
         .rounding(egui::Rounding::same(8.0))
         .show(ui, |ui| {
             ui.set_min_width(140.0);
