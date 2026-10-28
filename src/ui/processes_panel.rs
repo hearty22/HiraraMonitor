@@ -86,15 +86,7 @@ pub fn show(ui: &mut Ui, snapshot: Option<&SystemSnapshot>, state: &mut ProcessT
         })
         .collect();
 
-    filtered.sort_by(|a, b| match state.sort {
-        ProcessSort::CpuDesc => b
-            .cpu_usage
-            .partial_cmp(&a.cpu_usage)
-            .unwrap_or(std::cmp::Ordering::Equal),
-        ProcessSort::MemoryDesc => b.memory_bytes.cmp(&a.memory_bytes),
-        ProcessSort::NameAsc => a.name.cmp(&b.name),
-        ProcessSort::PidAsc => a.pid.cmp(&b.pid),
-    });
+    filtered.sort_by(|a, b| state.sort.compare(a, b));
 
     ui.label(format!(
         "Top CPU: {}  |  Top memoria: {}",
@@ -122,8 +114,46 @@ pub fn show(ui: &mut Ui, snapshot: Option<&SystemSnapshot>, state: &mut ProcessT
         if ui.button("Siguiente").clicked() && state.page + 1 < total_pages {
             state.page += 1;
         }
-        ui.label(format!("Total: {}", filtered.len()));
+        ui.label(format!(
+            "Total: {} | Seleccionados: {}",
+            filtered.len(),
+            state.selected_pids.len()
+        ));
+        if !state.selected_pids.is_empty() && ui.button("Limpiar selección").clicked() {
+            state.selected_pids.clear();
+            state.selected_pid = None;
+            state.selection_anchor = None;
+        }
+        if !state.selected_pids.is_empty() && ui.button("Seleccionar visibles").clicked() {
+            for process in &filtered {
+                state.selected_pids.insert(process.pid);
+            }
+        }
     });
+
+    if !state.selected_pids.is_empty() {
+        ui.horizontal(|ui| {
+            ui.label(format!("{} seleccionados", state.selected_pids.len()));
+            if ui.button("Terminar seleccionados").clicked() {
+                let pids = state.selected_pids.iter().copied().collect();
+                state.pending_action = Some(PendingProcessAction {
+                    pids,
+                    name: None,
+                    kind: ProcessActionKind::Terminate,
+                });
+                state.pending_action_open = true;
+            }
+            if ui.button("Forzar selección").clicked() {
+                let pids = state.selected_pids.iter().copied().collect();
+                state.pending_action = Some(PendingProcessAction {
+                    pids,
+                    name: None,
+                    kind: ProcessActionKind::Kill,
+                });
+                state.pending_action_open = true;
+            }
+        });
+    }
 
     egui::ScrollArea::vertical()
         .auto_shrink([false, false])
@@ -136,45 +166,69 @@ pub fn show(ui: &mut Ui, snapshot: Option<&SystemSnapshot>, state: &mut ProcessT
                     if ui
                         .add_sized(
                             [PID_WIDTH, ROW_HEIGHT],
-                            egui::Button::new("PID").frame(false),
+                            egui::Button::new(format!("PID{}", state.sort.indicator("pid")))
+                                .frame(false),
                         )
                         .clicked()
                     {
-                        state.sort = ProcessSort::PidAsc;
+                        state.sort = state.sort.toggled("pid");
                     }
                     if ui
                         .add_sized(
                             [name_width, ROW_HEIGHT],
-                            egui::Button::new("Nombre").frame(false),
+                            egui::Button::new(format!("Nombre{}", state.sort.indicator("name")))
+                                .frame(false),
                         )
                         .clicked()
                     {
-                        state.sort = ProcessSort::NameAsc;
+                        state.sort = state.sort.toggled("name");
                     }
                     if ui
                         .add_sized(
                             [CPU_WIDTH, ROW_HEIGHT],
-                            egui::Button::new("CPU").frame(false),
+                            egui::Button::new(format!("CPU{}", state.sort.indicator("cpu")))
+                                .frame(false),
                         )
                         .clicked()
                     {
-                        state.sort = ProcessSort::CpuDesc;
+                        state.sort = state.sort.toggled("cpu");
                     }
                     if ui
                         .add_sized(
                             [MEMORY_WIDTH, ROW_HEIGHT],
-                            egui::Button::new("Memoria").frame(false),
+                            egui::Button::new(format!("Memoria{}", state.sort.indicator("memory")))
+                                .frame(false),
                         )
                         .clicked()
                     {
-                        state.sort = ProcessSort::MemoryDesc;
+                        state.sort = state.sort.toggled("memory");
                     }
-                    ui.add_sized([STATE_WIDTH, ROW_HEIGHT], egui::Label::new("Estado"));
-                    ui.add_sized([USER_WIDTH, ROW_HEIGHT], egui::Label::new("Usuario"));
+                    if ui
+                        .add_sized(
+                            [STATE_WIDTH, ROW_HEIGHT],
+                            egui::Button::new(format!("Estado{}", state.sort.indicator("state")))
+                                .frame(false),
+                        )
+                        .clicked()
+                    {
+                        state.sort = state.sort.toggled("state");
+                    }
+                    if ui
+                        .add_sized(
+                            [USER_WIDTH, ROW_HEIGHT],
+                            egui::Button::new(format!("Usuario{}", state.sort.indicator("user")))
+                                .frame(false),
+                        )
+                        .clicked()
+                    {
+                        state.sort = state.sort.toggled("user");
+                    }
                     ui.end_row();
 
-                    for process in &filtered[start..end] {
-                        let selected = state.selected_pid == Some(process.pid);
+                    for (row_offset, process) in filtered[start..end].iter().enumerate() {
+                        let row_index = start + row_offset;
+                        let selected = state.selected_pid == Some(process.pid)
+                            || state.selected_pids.contains(&process.pid);
                         if ui
                             .add_sized(
                                 [PID_WIDTH, ROW_HEIGHT],
@@ -182,7 +236,27 @@ pub fn show(ui: &mut Ui, snapshot: Option<&SystemSnapshot>, state: &mut ProcessT
                             )
                             .clicked()
                         {
-                            state.selected_pid = Some(process.pid);
+                            let modifiers = ui.input(|input| input.modifiers);
+                            if modifiers.command || modifiers.ctrl {
+                                if !state.selected_pids.remove(&process.pid) {
+                                    state.selected_pids.insert(process.pid);
+                                }
+                                state.selection_anchor = Some(row_index);
+                            } else if modifiers.shift {
+                                let start_index = state.selection_anchor.unwrap_or(row_index);
+                                let (low, high) =
+                                    (start_index.min(row_index), start_index.max(row_index));
+                                for index in low..=high {
+                                    if let Some(candidate) = filtered.get(index) {
+                                        state.selected_pids.insert(candidate.pid);
+                                    }
+                                }
+                            } else {
+                                state.selected_pids.clear();
+                                state.selected_pids.insert(process.pid);
+                                state.selected_pid = Some(process.pid);
+                                state.selection_anchor = Some(row_index);
+                            }
                         }
                         ui.add_sized(
                             [name_width, ROW_HEIGHT],
@@ -255,31 +329,57 @@ pub fn show(ui: &mut Ui, snapshot: Option<&SystemSnapshot>, state: &mut ProcessT
                         ProcessActionKind::Terminate => "SIGTERM (Terminate)",
                         ProcessActionKind::Kill => "SIGKILL (Kill)",
                     };
-                    ui.label(format!(
-                        "Se enviara {} al proceso {} ({})?",
-                        signal, action.pid, action.name
-                    ));
+                    let target = if let Some(pid) = action.pids.first().copied() {
+                        if action.pids.len() == 1 {
+                            if let Some(name) = &action.name {
+                                format!("el proceso {pid} ({name})")
+                            } else {
+                                format!("el proceso {pid}")
+                            }
+                        } else {
+                            format!("{} procesos seleccionados", action.pids.len())
+                        }
+                    } else {
+                        "ningun proceso".to_string()
+                    };
+                    ui.label(format!("Se enviara {} a {}?", signal, target));
                     ui.horizontal(|ui| {
                         if ui.button("Confirmar").clicked() {
                             let label = match action.kind {
                                 ProcessActionKind::Terminate => "Terminar",
                                 ProcessActionKind::Kill => "Forzar",
                             };
-                            let result = match action.kind {
-                                ProcessActionKind::Terminate => {
-                                    platform::terminate_process(action.pid)
+                            let mut successes = 0;
+                            let mut failures = Vec::new();
+                            for pid in &action.pids {
+                                if is_protected(*pid) {
+                                    failures.push(format!("pid {pid} protegido"));
+                                    continue;
                                 }
-                                ProcessActionKind::Kill => platform::kill_process(action.pid),
-                            };
-                            state.action_status = Some(match result {
-                                Ok(()) => {
-                                    (format!("{} pid {} realizado", label, action.pid), false)
+                                let result = match action.kind {
+                                    ProcessActionKind::Terminate => {
+                                        platform::terminate_process(*pid)
+                                    }
+                                    ProcessActionKind::Kill => platform::kill_process(*pid),
+                                };
+                                match result {
+                                    Ok(_) => successes += 1,
+                                    Err(error) => failures.push(format!("pid {pid}: {error}")),
                                 }
-                                Err(error) => (
-                                    format!("{} pid {} fallo: {}", label, action.pid, error),
-                                    true,
-                                ),
-                            });
+                            }
+                            let total = action.pids.len();
+                            let error = !failures.is_empty();
+                            let mut message = format!("{label}: {successes}/{total} exitosos");
+                            if !failures.is_empty() {
+                                failures.truncate(4);
+                                message.push_str("; ");
+                                message.push_str(&failures.join(", "));
+                                if total > 4 {
+                                    message.push_str(", ...");
+                                }
+                            }
+                            state.action_status = Some((message, error));
+                            state.selected_pids.clear();
                             state.pending_action = None;
                             state.pending_action_open = false;
                         }
@@ -364,16 +464,16 @@ fn render_process_detail(
         ui.horizontal(|ui| {
             if ui.button("Terminar (SIGTERM)").clicked() {
                 state.pending_action = Some(PendingProcessAction {
-                    pid: process.pid,
-                    name: process.name.clone(),
+                    pids: vec![process.pid],
+                    name: Some(process.name.clone()),
                     kind: ProcessActionKind::Terminate,
                 });
                 state.pending_action_open = true;
             }
             if ui.button("Forzar (SIGKILL)").clicked() {
                 state.pending_action = Some(PendingProcessAction {
-                    pid: process.pid,
-                    name: process.name.clone(),
+                    pids: vec![process.pid],
+                    name: Some(process.name.clone()),
                     kind: ProcessActionKind::Kill,
                 });
                 state.pending_action_open = true;

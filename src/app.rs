@@ -34,6 +34,8 @@ impl HiraraApp {
             filter: String::new(),
             page: 0,
             selected_pid: None,
+            selected_pids: std::collections::HashSet::new(),
+            selection_anchor: None,
             pending_action: None,
             pending_action_open: false,
             action_status: None,
