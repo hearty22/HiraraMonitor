@@ -14,6 +14,10 @@ mod util;
 use app::HiraraApp;
 
 fn main() -> eframe::Result<()> {
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
+        .format_timestamp_secs()
+        .init();
+
     let config = config::AppConfig::from_args();
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
