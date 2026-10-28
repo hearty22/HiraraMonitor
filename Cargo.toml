@@ -28,6 +28,7 @@ system-tray = ["dep:tray-icon", "dep:image", "dep:gtk"]
 [dependencies.tray-icon]
 version = "0.26"
 optional = true
+features = ["ksni"]
 
 [dependencies.image]
 version = "0.25"
