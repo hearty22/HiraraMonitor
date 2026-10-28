@@ -21,6 +21,7 @@ pub struct TrayState {
 
 impl TrayState {
     pub fn new() -> Option<Self> {
+        let _ = gtk::init();
         let icon = load_icon().ok()?;
 
         let cpu_item = MenuItem::new("CPU: n/a", false, None);
