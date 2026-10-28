@@ -11,7 +11,12 @@ const STATE_WIDTH: f32 = 95.0;
 const USER_WIDTH: f32 = 120.0;
 const ROW_HEIGHT: f32 = 18.0;
 
-pub fn show(ui: &mut Ui, snapshot: Option<&SystemSnapshot>, state: &mut ProcessTableState) {
+pub fn show(
+    ui: &mut Ui,
+    snapshot: Option<&SystemSnapshot>,
+    state: &mut ProcessTableState,
+    config: &crate::config::AppConfig,
+) {
     ui.heading("Procesos");
 
     if let Some((message, is_error)) = state.action_status.clone() {
@@ -264,7 +269,20 @@ pub fn show(ui: &mut Ui, snapshot: Option<&SystemSnapshot>, state: &mut ProcessT
                         );
                         ui.add_sized(
                             [CPU_WIDTH, ROW_HEIGHT],
-                            egui::Label::new(format!("{:.1}%", process.cpu_usage)),
+                            egui::Label::new(
+                                egui::RichText::new(format!("{:.1}%", process.cpu_usage)).color(
+                                    if config.visual_alerts {
+                                        crate::ui::components::alert_color(
+                                            process.cpu_usage,
+                                            config.cpu_warn,
+                                            config.cpu_crit,
+                                            config.visual_alerts,
+                                        )
+                                    } else {
+                                        crate::ui::theme::TEXT
+                                    },
+                                ),
+                            ),
                         );
                         ui.add_sized(
                             [MEMORY_WIDTH, ROW_HEIGHT],
@@ -308,7 +326,7 @@ pub fn show(ui: &mut Ui, snapshot: Option<&SystemSnapshot>, state: &mut ProcessT
             .collapsible(false)
             .open(&mut detail_open)
             .show(ui.ctx(), |ui| {
-                render_process_detail(ui, &process, state);
+                render_process_detail(ui, &process, state, config);
             });
         if !detail_open {
             state.selected_pid = None;
@@ -401,6 +419,7 @@ fn render_process_detail(
     ui: &mut egui::Ui,
     process: &ProcessSnapshot,
     state: &mut ProcessTableState,
+    config: &crate::config::AppConfig,
 ) {
     ui.heading("Detalle del proceso");
     if ui.button("Cerrar detalle").clicked() {
@@ -427,7 +446,16 @@ fn render_process_detail(
             ui.end_row();
 
             ui.label("CPU");
-            ui.label(format!("{:.1}%", process.cpu_usage));
+            ui.label(
+                egui::RichText::new(format!("{:.1}%", process.cpu_usage)).color(
+                    crate::ui::components::alert_color(
+                        process.cpu_usage,
+                        config.cpu_warn,
+                        config.cpu_crit,
+                        config.visual_alerts,
+                    ),
+                ),
+            );
             ui.end_row();
 
             ui.label("Memoria");

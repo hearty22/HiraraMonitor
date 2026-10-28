@@ -185,6 +185,16 @@ impl eframe::App for HiraraApp {
                         Theme::Dark => Theme::Light,
                     };
                 }
+                if ui
+                    .button(if self.config.visual_alerts {
+                        "Alertas: ON"
+                    } else {
+                        "Alertas: OFF"
+                    })
+                    .clicked()
+                {
+                    self.config.visual_alerts = !self.config.visual_alerts;
+                }
                 if let Some(snapshot) = self.latest.as_ref() {
                     ui.label(format!("CPU: {:.1}%", snapshot.cpu_global));
                     ui.label(format!("RAM: {:.1}%", snapshot.memory_used_percent()));
@@ -222,12 +232,15 @@ impl eframe::App for HiraraApp {
         });
 
         egui::CentralPanel::default().show(ctx, |ui| match self.selected_view {
-            View::Cpu => cpu_panel::show(ui, self.latest.as_deref(), &self.cpu_history),
+            View::Cpu => {
+                cpu_panel::show(ui, self.latest.as_deref(), &self.cpu_history, &self.config)
+            }
             View::Memory => memory_panel::show(
                 ui,
                 self.latest.as_deref(),
                 &self.memory_history,
                 &self.swap_history,
+                &self.config,
             ),
             View::Disks => disks_panel::show(ui, self.latest.as_deref()),
             View::Network => network_panel::show(
@@ -236,9 +249,12 @@ impl eframe::App for HiraraApp {
                 &self.network_rx_history,
                 &self.network_tx_history,
             ),
-            View::Processes => {
-                processes_panel::show(ui, self.latest.as_deref(), &mut self.process_table)
-            }
+            View::Processes => processes_panel::show(
+                ui,
+                self.latest.as_deref(),
+                &mut self.process_table,
+                &self.config,
+            ),
             View::Sensors => sensors_panel::show(ui, self.latest.as_deref()),
             View::System => system_panel::show(ui, self.latest.as_deref()),
         });

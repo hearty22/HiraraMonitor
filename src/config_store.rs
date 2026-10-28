@@ -99,6 +99,11 @@ mod tests {
             history_len: 120,
             process_page_size: 12,
             process_sort: crate::ui::ProcessSort::MemoryDesc,
+            visual_alerts: true,
+            cpu_warn: 60.0,
+            cpu_crit: 85.0,
+            mem_warn: 75.0,
+            mem_crit: 90.0,
             window_width: 900.0,
             window_height: 600.0,
         };

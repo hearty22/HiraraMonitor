@@ -31,6 +31,11 @@ pub struct AppConfig {
     pub theme: Theme,
     pub initial_view: View,
     pub process_sort: ProcessSort,
+    pub visual_alerts: bool,
+    pub cpu_warn: f32,
+    pub cpu_crit: f32,
+    pub mem_warn: f32,
+    pub mem_crit: f32,
     pub window_width: f32,
     pub window_height: f32,
     pub config_path: Option<std::path::PathBuf>,
@@ -45,6 +50,11 @@ impl Default for AppConfig {
             theme: Theme::Dark,
             initial_view: View::Cpu,
             process_sort: ProcessSort::CpuDesc,
+            visual_alerts: true,
+            cpu_warn: 70.0,
+            cpu_crit: 90.0,
+            mem_warn: 80.0,
+            mem_crit: 95.0,
             window_width: default_window_width(),
             window_height: default_window_height(),
             config_path: None,
@@ -159,6 +169,16 @@ pub struct PersistedConfig {
     pub process_page_size: usize,
     #[serde(default)]
     pub process_sort: ProcessSort,
+    #[serde(default = "default_true")]
+    pub visual_alerts: bool,
+    #[serde(default = "default_cpu_warn")]
+    pub cpu_warn: f32,
+    #[serde(default = "default_cpu_crit")]
+    pub cpu_crit: f32,
+    #[serde(default = "default_mem_warn")]
+    pub mem_warn: f32,
+    #[serde(default = "default_mem_crit")]
+    pub mem_crit: f32,
     #[serde(default = "default_window_width")]
     pub window_width: f32,
     #[serde(default = "default_window_height")]
@@ -174,6 +194,11 @@ impl Default for PersistedConfig {
             history_len: default_history_len(),
             process_page_size: default_process_page_size(),
             process_sort: ProcessSort::CpuDesc,
+            visual_alerts: true,
+            cpu_warn: default_cpu_warn(),
+            cpu_crit: default_cpu_crit(),
+            mem_warn: default_mem_warn(),
+            mem_crit: default_mem_crit(),
             window_width: default_window_width(),
             window_height: default_window_height(),
         }
@@ -189,6 +214,11 @@ impl PersistedConfig {
             history_len: config.history_len,
             process_page_size: config.process_page_size,
             process_sort: config.process_sort,
+            visual_alerts: config.visual_alerts,
+            cpu_warn: config.cpu_warn,
+            cpu_crit: config.cpu_crit,
+            mem_warn: config.mem_warn,
+            mem_crit: config.mem_crit,
             window_width: config.window_width,
             window_height: config.window_height,
         }
@@ -211,6 +241,11 @@ impl AppConfig {
             theme: persisted.theme,
             initial_view: persisted.initial_view,
             process_sort: persisted.process_sort,
+            visual_alerts: persisted.visual_alerts,
+            cpu_warn: persisted.cpu_warn,
+            cpu_crit: persisted.cpu_crit,
+            mem_warn: persisted.mem_warn,
+            mem_crit: persisted.mem_crit,
             window_width: if persisted.window_width > 0.0 {
                 persisted.window_width
             } else {
@@ -232,4 +267,24 @@ fn default_window_width() -> f32 {
 
 fn default_window_height() -> f32 {
     760.0
+}
+
+fn default_true() -> bool {
+    true
+}
+
+fn default_cpu_warn() -> f32 {
+    70.0
+}
+
+fn default_cpu_crit() -> f32 {
+    90.0
+}
+
+fn default_mem_warn() -> f32 {
+    80.0
+}
+
+fn default_mem_crit() -> f32 {
+    95.0
 }

@@ -38,3 +38,22 @@ pub fn badge(ui: &mut Ui, text: &str, color: egui::Color32) {
             ui.label(egui::RichText::new(text).color(color).size(11.0));
         });
 }
+
+#[allow(dead_code)]
+pub fn alert_color(
+    value: f32,
+    warning_threshold: f32,
+    critical_threshold: f32,
+    enabled: bool,
+) -> egui::Color32 {
+    if !enabled {
+        return super::theme::TEXT;
+    }
+    if value >= critical_threshold {
+        egui::Color32::from_rgb(245, 105, 85)
+    } else if value >= warning_threshold {
+        egui::Color32::from_rgb(245, 185, 85)
+    } else {
+        egui::Color32::from_rgb(95, 185, 110)
+    }
+}
