@@ -2036,6 +2036,7 @@ dependencies = [
  "egui",
  "egui_plot",
  "env_logger",
+ "gtk",
  "image",
  "log",
  "serde",

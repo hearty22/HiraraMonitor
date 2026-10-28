@@ -23,7 +23,7 @@ chrono = { version = "0.4", features = ["clock"] }
 
 [features]
 default = ["system-tray"]
-system-tray = ["dep:tray-icon", "dep:image"]
+system-tray = ["dep:tray-icon", "dep:image", "dep:gtk"]
 
 [dependencies.tray-icon]
 version = "0.26"
@@ -34,3 +34,8 @@ version = "0.25"
 optional = true
 default-features = false
 features = ["png"]
+
+[dependencies.gtk]
+version = "0.18"
+optional = true
+features = ["v3_24"]
