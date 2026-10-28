@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use std::time::Instant;
 
 #[derive(Clone, Debug, Default)]
@@ -17,7 +15,9 @@ pub struct MemorySnapshot {
     pub available_bytes: u64,
     pub swap_total_bytes: u64,
     pub swap_used_bytes: u64,
+    #[allow(dead_code)]
     pub cached_bytes: u64,
+    #[allow(dead_code)]
     pub buffers_bytes: u64,
 }
 
@@ -99,6 +99,7 @@ impl SystemSnapshot {
         }
     }
 
+    #[allow(dead_code)]
     pub fn disk_used_percent(disk: &DiskSnapshot) -> f32 {
         if disk.total_bytes == 0 {
             0.0

@@ -85,12 +85,7 @@ pub fn show(ui: &mut Ui, snapshot: Option<&SystemSnapshot>) {
                             egui::Label::new(format::format_bytes(disk.total_bytes)),
                         );
 
-                        let ratio = if disk.total_bytes == 0 {
-                            0.0
-                        } else {
-                            (disk.total_bytes.saturating_sub(disk.available_bytes)) as f32
-                                / disk.total_bytes as f32
-                        };
+                        let ratio = SystemSnapshot::disk_used_percent(disk) / 100.0_f32;
                         ui.add_sized([USAGE_WIDTH, ROW_HEIGHT], egui::ProgressBar::new(ratio));
 
                         ui.add_sized(

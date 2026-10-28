@@ -10,6 +10,7 @@ pub fn show(
     snapshot: Option<&SystemSnapshot>,
     memory_history: &HistoryBuffer,
     swap_history: &HistoryBuffer,
+    config: &crate::config::AppConfig,
 ) {
     components::section_card(ui, "Memoria", |ui| {
         let Some(snapshot) = snapshot else {
@@ -31,10 +32,19 @@ pub fn show(
             "Libre: {}",
             format::format_bytes(memory.free_bytes)
         ));
-        ui.label(format!(
-            "Uso: {}",
-            format::format_percent(snapshot.memory_used_percent())
-        ));
+        let memory_color = crate::ui::components::alert_color(
+            snapshot.memory_used_percent(),
+            config.mem_warn,
+            config.mem_crit,
+            config.visual_alerts,
+        );
+        ui.label(
+            egui::RichText::new(format!(
+                "Uso: {}",
+                format::format_percent(snapshot.memory_used_percent())
+            ))
+            .color(memory_color),
+        );
 
         if memory.swap_total_bytes > 0 {
             ui.label(format!(

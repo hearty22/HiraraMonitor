@@ -5,6 +5,7 @@
 
 mod app;
 mod config;
+mod config_store;
 mod metrics;
 mod platform;
 mod ui;
@@ -13,16 +14,21 @@ mod util;
 use app::HiraraApp;
 
 fn main() -> eframe::Result<()> {
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
+        .format_timestamp_secs()
+        .init();
+
+    let config = config::AppConfig::from_args();
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_title("HiraraMonitor")
-            .with_inner_size([1200.0, 760.0]),
+            .with_inner_size([config.window_width, config.window_height]),
         ..Default::default()
     };
 
     eframe::run_native(
         "HiraraMonitor",
         options,
-        Box::new(|_cc| Ok(Box::new(HiraraApp::new()))),
+        Box::new(|_cc| Ok(Box::new(HiraraApp::new(config)))),
     )
 }

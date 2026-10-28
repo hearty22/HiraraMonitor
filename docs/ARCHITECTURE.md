@@ -2,29 +2,30 @@
 
 ## Overview
 
-HiraraMonitor uses a simple two-layer design:
+HiraraMonitor uses a focused two-layer design:
 
-1. **Collector layer**: gathers system metrics in a background thread.
+1. **Collector layer**: gathers system metrics on a background thread.
 2. **UI layer**: renders the latest metrics with egui.
 
-This keeps `sysinfo` refresh calls out of the render loop.
+The collector produces one immutable `SystemSnapshot` per refresh. Panels render from a shared `Arc<SystemSnapshot>` without mutating it.
 
 ## Main modules
 
-- `src/main.rs`: application entry point.
-- `src/app.rs`: application state, theme, metrics ingestion, layout and routing.
-- `src/config.rs`: in-memory configuration and CLI arguments.
-- `src/metrics/snapshot.rs`: immutable data models used by all views.
-- `src/metrics/collector.rs`: background collector and `SystemSnapshot` creation.
-- `src/metrics/history.rs`: fixed-capacity history buffers.
-- `src/platform`: platform-specific helpers. Linux disk throughput uses `/proc/diskstats`.
-- `src/ui`: individual panels for each view.
-- `src/util/format.rs`: formatting helpers.
+- `src/main.rs`: entry point, logging initialization and viewport creation.
+- `src/app.rs`: application state, theme application, routing, metric ingestion and persisted preferences.
+- `src/config.rs`: persisted configuration types and validation.
+- `src/config_store.rs`: TOML loading, atomic saving and CLI-compatible defaults.
+- `src/metrics/collector.rs`: background collector, error handling and backoff.
+- `src/metrics/history.rs`: fixed-capacity circular history buffers.
+- `src/metrics/snapshot.rs`: immutable data models used by every panel.
+- `src/platform/`: Linux-specific and unsupported helpers.
+- `src/ui/`: panels, reusable components and visual theme.
+- `src/util/`: formatting helpers.
 
 ## Data flow
 
 ```text
-sysinfo::System
+sysinfo + platform files
        |
        v
 Collector thread
@@ -33,7 +34,7 @@ Collector thread
 Arc<SystemSnapshot>
        |
        v
-mpsc channel
+mpsc::sync_channel(1)
        |
        v
 HiraraApp::receive_metrics
@@ -45,46 +46,55 @@ Latest snapshot + HistoryBuffer
 egui panels
 ```
 
-## Metrics model
+## Process handling
 
-The collector produces one `SystemSnapshot` per refresh cycle. Views do not mutate the snapshot; they render from it.
+- Process rows use stable fixed widths.
+- Sorting is configurable by PID, name, CPU, memory, state and user.
+- Selection supports single and multi-select.
+- Batch terminate and kill require confirmation.
+- Process details render in a floating `egui::Window`.
+- `pid == 1` and the application PID are protected from signals.
 
-Important structures:
+## Configuration
 
-- `SystemSnapshot`
-- `CpuCoreSnapshot`
-- `MemorySnapshot`
-- `DiskSnapshot`
-- `NetworkSnapshot`
-- `ProcessSnapshot`
-- `ComponentSnapshot`
-- `SystemMetadata`
+The app stores compact `PersistedConfig` data:
 
-## History handling
+- theme
+- initial view
+- refresh interval
+- history length
+- process page size and sort
+- visual alert thresholds
+- window size when captured
 
-- `HistoryBuffer` is a fixed-size circular buffer.
-- CPU, memory, swap and network views use rolling 60-second viewports.
-- The X axis uses wall-clock epoch time formatted as `HH:MM:SS`.
+Load order:
 
-## Process view
+1. defaults
+2. `--config <path>` or `HIRARA_CONFIG`
+3. default `~/.config/hiraramonitor/config.toml` on Linux
+4. CLI flags
 
-- Filtering happens before pagination.
-- Sorting can use CPU, memory, name or PID.
-- The selected process gets a detail panel.
-- Pagination controls are placed above the table.
-- Columns use fixed widths to avoid unstable layouts.
+Preferences are saved at close and when a changed preference is debounced.
+
+## Collector robustness
+
+- Collection is split from the worker loop.
+- Targeted refreshes replace `refresh_all()` where practical.
+- Failed collection is logged and retries with backoff.
+- Snapshots can be dropped locally under pressure, but UI remains alive.
+- Panic reporting is written to the shared collector error state.
+
+## Performance and visualization
+
+- Theme is only applied when it changes.
+- UI repaint is limited to the configured refresh interval, capped at 250 ms.
+- Process, disk and sensor tables avoid unstable width calculations.
+- Rolling graphs use fixed bounded X axes.
+- Visual alert colors are computed from persisted thresholds.
 
 ## Platform behavior
 
-- Linux disk throughput is enriched with `/proc/diskstats`.
-- Non-Linux targets currently use the unsupported platform fallback.
-- No global configuration files are written. Settings remain in memory or explicit CLI input.
-
-## Performance considerations
-
-- Metric collection runs in a separate thread.
-- The UI uses `try_recv()` to avoid blocking.
-- Scrollable views use `ScrollArea`.
-- Process tables use fixed-width cells and pagination.
-- Graphs use rolling bounds and disabled drag/zoom to keep rendering stable.
-```
+- Linux disk throughput is read from `/proc/diskstats`.
+- Unsupported targets receive empty disk throughput.
+- Process signal support comes from `sysinfo` on Linux.
+- No application code relies on a mandatory global configuration file; persistence uses explicit or default paths.

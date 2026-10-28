@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::config::{AppConfig, Theme, View};
+use crate::config::{AppConfig, PersistedConfig, Theme, View};
 use crate::metrics::{Collector, CollectorHandle, HistoryBuffer, SystemSnapshot};
 use crate::ui::{
     cpu_panel, disks_panel, memory_panel, network_panel, processes_panel, sensors_panel,
@@ -11,9 +11,12 @@ use crate::ui::{
 pub struct HiraraApp {
     config: AppConfig,
     collector: CollectorHandle,
+    applied_theme: Option<Theme>,
     latest: Option<Arc<SystemSnapshot>>,
     collector_error: Option<String>,
     selected_view: View,
+    config_saved: PersistedConfig,
+    config_dirty_at: Option<std::time::Instant>,
     process_table: ProcessTableState,
     cpu_history: HistoryBuffer,
     memory_history: HistoryBuffer,
@@ -23,21 +26,33 @@ pub struct HiraraApp {
 }
 
 impl HiraraApp {
-    pub fn new() -> Self {
-        let config = AppConfig::from_args();
+    pub fn new(config: AppConfig) -> Self {
         let history_len = config.history_len;
+        let selected_view = config.initial_view;
         let process_table = ProcessTableState {
             page_size: config.process_page_size,
-            ..ProcessTableState::default()
+            sort: config.process_sort,
+            filter: String::new(),
+            page: 0,
+            selected_pid: None,
+            selected_pids: std::collections::HashSet::new(),
+            selection_anchor: None,
+            pending_action: None,
+            pending_action_open: false,
+            action_status: None,
         };
         let collector = Collector::spawn(config.clone());
+        let saved_config = PersistedConfig::from(&config);
 
         Self {
             config,
             collector,
+            applied_theme: None,
             latest: None,
             collector_error: None,
-            selected_view: View::Cpu,
+            selected_view,
+            config_saved: saved_config,
+            config_dirty_at: None,
             process_table,
             cpu_history: HistoryBuffer::new(history_len),
             memory_history: HistoryBuffer::new(history_len),
@@ -94,13 +109,39 @@ impl HiraraApp {
             }
         }
     }
+
+    fn reconcile_persisted_config(&mut self) {
+        self.config.process_sort = self.process_table.sort;
+        self.config.process_page_size = self.process_table.page_size;
+        self.config.initial_view = self.selected_view;
+
+        let current = PersistedConfig::from(&self.config);
+        if current != self.config_saved {
+            if self.config_dirty_at.is_none() {
+                self.config_dirty_at = Some(std::time::Instant::now());
+            }
+        } else {
+            self.config_dirty_at = None;
+        }
+
+        if let Some(started_at) = self.config_dirty_at {
+            if started_at.elapsed() >= std::time::Duration::from_secs(1) {
+                let _ = self.config.save();
+                self.config_saved = current;
+                self.config_dirty_at = None;
+            }
+        }
+    }
 }
 
 impl eframe::App for HiraraApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        self.apply_theme(ctx);
+        if self.applied_theme != Some(self.config.theme) {
+            self.apply_theme(ctx);
+            self.applied_theme = Some(self.config.theme);
+        }
         self.receive_metrics();
-
+        self.reconcile_persisted_config();
         ctx.input(|input| {
             if input.key_pressed(egui::Key::Num1) {
                 self.selected_view = View::Cpu;
@@ -131,7 +172,9 @@ impl eframe::App for HiraraApp {
             }
         });
 
-        ctx.request_repaint_after(std::time::Duration::from_millis(100));
+        ctx.request_repaint_after(std::time::Duration::from_millis(
+            self.config.refresh_interval.as_millis().clamp(16, 250) as u64,
+        ));
 
         egui::TopBottomPanel::top("top_bar").show(ctx, |ui| {
             ui.horizontal(|ui| {
@@ -141,6 +184,16 @@ impl eframe::App for HiraraApp {
                         Theme::Light => Theme::Dark,
                         Theme::Dark => Theme::Light,
                     };
+                }
+                if ui
+                    .button(if self.config.visual_alerts {
+                        "Alertas: ON"
+                    } else {
+                        "Alertas: OFF"
+                    })
+                    .clicked()
+                {
+                    self.config.visual_alerts = !self.config.visual_alerts;
                 }
                 if let Some(snapshot) = self.latest.as_ref() {
                     ui.label(format!("CPU: {:.1}%", snapshot.cpu_global));
@@ -179,12 +232,15 @@ impl eframe::App for HiraraApp {
         });
 
         egui::CentralPanel::default().show(ctx, |ui| match self.selected_view {
-            View::Cpu => cpu_panel::show(ui, self.latest.as_deref(), &self.cpu_history),
+            View::Cpu => {
+                cpu_panel::show(ui, self.latest.as_deref(), &self.cpu_history, &self.config)
+            }
             View::Memory => memory_panel::show(
                 ui,
                 self.latest.as_deref(),
                 &self.memory_history,
                 &self.swap_history,
+                &self.config,
             ),
             View::Disks => disks_panel::show(ui, self.latest.as_deref()),
             View::Network => network_panel::show(
@@ -193,9 +249,12 @@ impl eframe::App for HiraraApp {
                 &self.network_rx_history,
                 &self.network_tx_history,
             ),
-            View::Processes => {
-                processes_panel::show(ui, self.latest.as_deref(), &mut self.process_table)
-            }
+            View::Processes => processes_panel::show(
+                ui,
+                self.latest.as_deref(),
+                &mut self.process_table,
+                &self.config,
+            ),
             View::Sensors => sensors_panel::show(ui, self.latest.as_deref()),
             View::System => system_panel::show(ui, self.latest.as_deref()),
         });
@@ -204,6 +263,10 @@ impl eframe::App for HiraraApp {
             egui::TopBottomPanel::bottom("status_bar").show(ctx, |ui| {
                 ui.colored_label(egui::Color32::RED, format!("Collector error: {}", error));
             });
+        }
+
+        if ctx.input(|input| input.viewport().close_requested()) {
+            let _ = self.config.save();
         }
     }
 }

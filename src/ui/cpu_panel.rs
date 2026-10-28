@@ -4,19 +4,33 @@ use egui_plot::{Line, Plot, PlotPoints};
 use crate::metrics::{HistoryBuffer, SystemSnapshot};
 use crate::util::format;
 
-pub fn show(ui: &mut Ui, snapshot: Option<&SystemSnapshot>, cpu_history: &HistoryBuffer) {
-    use crate::ui::components;
+use crate::ui::components;
 
+pub fn show(
+    ui: &mut Ui,
+    snapshot: Option<&SystemSnapshot>,
+    cpu_history: &HistoryBuffer,
+    config: &crate::config::AppConfig,
+) {
     components::section_card(ui, "CPU", |ui| {
         let Some(snapshot) = snapshot else {
             ui.label("Esperando métricas...");
             return;
         };
 
-        ui.label(format!(
-            "Uso global: {}",
-            format::format_percent(snapshot.cpu_global)
-        ));
+        let cpu_color = components::alert_color(
+            snapshot.cpu_global,
+            config.cpu_warn,
+            config.cpu_crit,
+            config.visual_alerts,
+        );
+        ui.label(
+            egui::RichText::new(format!(
+                "Uso global: {}",
+                format::format_percent(snapshot.cpu_global)
+            ))
+            .color(cpu_color),
+        );
 
         if let Some(temperature) = snapshot.cpu_temperature_celsius {
             ui.label(format!("Temperatura CPU: {:.1} °C", temperature));
@@ -72,7 +86,16 @@ pub fn show(ui: &mut Ui, snapshot: Option<&SystemSnapshot>, cpu_history: &Histor
 
                 for (index, core) in snapshot.cpu_cores.iter().enumerate() {
                     ui.label(format!("Core {}", index));
-                    ui.label(format::format_percent(core.usage));
+                    ui.label(
+                        egui::RichText::new(format::format_percent(core.usage)).color(
+                            components::alert_color(
+                                core.usage,
+                                config.cpu_warn,
+                                config.cpu_crit,
+                                config.visual_alerts,
+                            ),
+                        ),
+                    );
                     ui.label(format!("{} MHz", core.frequency_mhz));
                     ui.label(
                         core.temperature_celsius

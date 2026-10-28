@@ -1,9 +1,29 @@
 use std::collections::HashMap;
-use std::fs;
 
 use super::DiskIo;
+use crate::platform::ProcessActions;
+use sysinfo::{Pid, ProcessesToUpdate, Signal, System};
+
+#[derive(Clone, Copy)]
+pub struct LinuxProcessActions;
+
+impl ProcessActions for LinuxProcessActions {
+    fn terminate(pid: usize) -> Result<(), String> {
+        send(pid, Signal::Term)
+    }
+
+    fn kill(pid: usize) -> Result<(), String> {
+        send(pid, Signal::Kill)
+    }
+}
+
+pub fn terminate_process(pid: usize) -> Result<(), String> {
+    <LinuxProcessActions as ProcessActions>::terminate(pid)
+}
 
 pub fn disk_io() -> HashMap<String, DiskIo> {
+    use std::fs;
+
     let mut result = HashMap::new();
     let Ok(content) = fs::read_to_string("/proc/diskstats") else {
         return result;
@@ -11,7 +31,6 @@ pub fn disk_io() -> HashMap<String, DiskIo> {
 
     for line in content.lines() {
         let fields: Vec<&str> = line.split_whitespace().collect();
-        // /proc/diskstats: major minor name reads_completed ... sectors_read ... writes ... sectors_written
         if fields.len() < 14 {
             continue;
         }
@@ -28,4 +47,22 @@ pub fn disk_io() -> HashMap<String, DiskIo> {
     }
 
     result
+}
+
+pub fn kill_process(pid: usize) -> Result<(), String> {
+    <LinuxProcessActions as ProcessActions>::kill(pid)
+}
+
+fn send(pid: usize, signal: Signal) -> Result<(), String> {
+    let mut system = System::new();
+    system.refresh_processes(ProcessesToUpdate::All);
+
+    match system.process(Pid::from(pid)) {
+        Some(process) => match process.kill_with(signal) {
+            Some(true) => Ok(()),
+            Some(false) => Err(format!("el proceso {pid} no pudo recibir la señal")),
+            None => Err(format!("señal no soportada para el proceso {pid}")),
+        },
+        None => Err(format!("el proceso {pid} ya no está en ejecución")),
+    }
 }
