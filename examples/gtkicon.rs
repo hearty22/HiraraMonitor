@@ -1,5 +1,5 @@
-use std::time::Duration;
 use gtk::prelude::*;
+use std::time::Duration;
 fn main() {
     gtk::init().expect("gtk init");
     let icon = gtk::StatusIcon::new();
