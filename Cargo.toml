@@ -40,3 +40,5 @@ features = ["png"]
 version = "0.18"
 optional = true
 features = ["v3_24"]
+[dev-dependencies]
+x11-dl = "2.21"
