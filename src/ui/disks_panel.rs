@@ -13,9 +13,9 @@ const RATE_WIDTH: f32 = 110.0;
 const ROW_HEIGHT: f32 = 20.0;
 
 pub fn show(ui: &mut Ui, snapshot: Option<&SystemSnapshot>) {
-    ui.heading("Discos");
+    ui.heading("Disks");
     let Some(snapshot) = snapshot else {
-        ui.label("Esperando métricas...");
+        ui.label("Waiting for metrics...");
         return;
     };
 
@@ -29,7 +29,7 @@ pub fn show(ui: &mut Ui, snapshot: Option<&SystemSnapshot>) {
                 .show(ui, |ui| {
                     ui.add_sized(
                         [NAME_WIDTH, ROW_HEIGHT],
-                        egui::Label::new(egui::RichText::new("Dispositivo").strong()),
+                        egui::Label::new(egui::RichText::new("Device").strong()),
                     );
                     ui.add_sized(
                         [MOUNT_WIDTH, ROW_HEIGHT],
@@ -41,7 +41,7 @@ pub fn show(ui: &mut Ui, snapshot: Option<&SystemSnapshot>) {
                     );
                     ui.add_sized(
                         [USED_WIDTH, ROW_HEIGHT],
-                        egui::Label::new(egui::RichText::new("Usado").strong()),
+                        egui::Label::new(egui::RichText::new("Used").strong()),
                     );
                     ui.add_sized(
                         [TOTAL_WIDTH, ROW_HEIGHT],
@@ -49,15 +49,15 @@ pub fn show(ui: &mut Ui, snapshot: Option<&SystemSnapshot>) {
                     );
                     ui.add_sized(
                         [USAGE_WIDTH, ROW_HEIGHT],
-                        egui::Label::new(egui::RichText::new("Uso").strong()),
+                        egui::Label::new(egui::RichText::new("Usage").strong()),
                     );
                     ui.add_sized(
                         [RATE_WIDTH, ROW_HEIGHT],
-                        egui::Label::new(egui::RichText::new("Lectura/s").strong()),
+                        egui::Label::new(egui::RichText::new("Read/s").strong()),
                     );
                     ui.add_sized(
                         [RATE_WIDTH, ROW_HEIGHT],
-                        egui::Label::new(egui::RichText::new("Escritura/s").strong()),
+                        egui::Label::new(egui::RichText::new("Write/s").strong()),
                     );
                     ui.end_row();
 
@@ -104,7 +104,7 @@ pub fn show(ui: &mut Ui, snapshot: Option<&SystemSnapshot>) {
                     }
 
                     if snapshot.disks.is_empty() {
-                        ui.label("No hay discos disponibles.");
+                        ui.label("No disks available.");
                     }
                 });
         });

@@ -17,7 +17,7 @@ pub fn show(
     state: &mut ProcessTableState,
     config: &crate::config::AppConfig,
 ) {
-    ui.heading("Procesos");
+    ui.heading("Processes");
 
     if let Some((message, is_error)) = state.action_status.clone() {
         let color = if is_error {
@@ -26,7 +26,7 @@ pub fn show(
             egui::Color32::from_rgb(95, 185, 110)
         };
         ui.colored_label(color, message);
-        if ui.button("Cerrar").clicked() {
+        if ui.button("Close").clicked() {
             state.action_status = None;
         }
     }
@@ -71,7 +71,7 @@ pub fn show(
     ui.separator();
 
     let Some(snapshot) = snapshot else {
-        ui.label("Esperando métricas...");
+        ui.label("Waiting for metrics...");
         return;
     };
 
@@ -115,21 +115,21 @@ pub fn show(
         if ui.button("Anterior").clicked() && state.page > 0 {
             state.page -= 1;
         }
-        ui.label(format!("Página {} / {}", state.page + 1, total_pages));
+        ui.label(format!("Page {} / {}", state.page + 1, total_pages));
         if ui.button("Siguiente").clicked() && state.page + 1 < total_pages {
             state.page += 1;
         }
         ui.label(format!(
-            "Total: {} | Seleccionados: {}",
+            "Total: {} | Selected: {}",
             filtered.len(),
             state.selected_pids.len()
         ));
-        if !state.selected_pids.is_empty() && ui.button("Limpiar selección").clicked() {
+        if !state.selected_pids.is_empty() && ui.button("Clear selection").clicked() {
             state.selected_pids.clear();
             state.selected_pid = None;
             state.selection_anchor = None;
         }
-        if !state.selected_pids.is_empty() && ui.button("Seleccionar visibles").clicked() {
+        if !state.selected_pids.is_empty() && ui.button("Select visible").clicked() {
             for process in &filtered {
                 state.selected_pids.insert(process.pid);
             }
@@ -138,8 +138,8 @@ pub fn show(
 
     if !state.selected_pids.is_empty() {
         ui.horizontal(|ui| {
-            ui.label(format!("{} seleccionados", state.selected_pids.len()));
-            if ui.button("Terminar seleccionados").clicked() {
+            ui.label(format!("{} selected", state.selected_pids.len()));
+            if ui.button("Terminate selected").clicked() {
                 let pids = state.selected_pids.iter().copied().collect();
                 state.pending_action = Some(PendingProcessAction {
                     pids,
@@ -148,7 +148,7 @@ pub fn show(
                 });
                 state.pending_action_open = true;
             }
-            if ui.button("Forzar selección").clicked() {
+            if ui.button("Force kill selection").clicked() {
                 let pids = state.selected_pids.iter().copied().collect();
                 state.pending_action = Some(PendingProcessAction {
                     pids,
@@ -181,7 +181,7 @@ pub fn show(
                     if ui
                         .add_sized(
                             [name_width, ROW_HEIGHT],
-                            egui::Button::new(format!("Nombre{}", state.sort.indicator("name")))
+                            egui::Button::new(format!("Name{}", state.sort.indicator("name")))
                                 .frame(false),
                         )
                         .clicked()
@@ -201,7 +201,7 @@ pub fn show(
                     if ui
                         .add_sized(
                             [MEMORY_WIDTH, ROW_HEIGHT],
-                            egui::Button::new(format!("Memoria{}", state.sort.indicator("memory")))
+                            egui::Button::new(format!("Memory{}", state.sort.indicator("memory")))
                                 .frame(false),
                         )
                         .clicked()
@@ -211,7 +211,7 @@ pub fn show(
                     if ui
                         .add_sized(
                             [STATE_WIDTH, ROW_HEIGHT],
-                            egui::Button::new(format!("Estado{}", state.sort.indicator("state")))
+                            egui::Button::new(format!("State{}", state.sort.indicator("state")))
                                 .frame(false),
                         )
                         .clicked()
@@ -221,7 +221,7 @@ pub fn show(
                     if ui
                         .add_sized(
                             [USER_WIDTH, ROW_HEIGHT],
-                            egui::Button::new(format!("Usuario{}", state.sort.indicator("user")))
+                            egui::Button::new(format!("User{}", state.sort.indicator("user")))
                                 .frame(false),
                         )
                         .clicked()
@@ -320,7 +320,7 @@ pub fn show(
 
     if let Some(process) = selected_process {
         let mut detail_open = true;
-        egui::Window::new("Detalle del proceso")
+        egui::Window::new("Process details")
             .default_width(420.0)
             .resizable(false)
             .collapsible(false)
@@ -350,22 +350,22 @@ pub fn show(
                     let target = if let Some(pid) = action.pids.first().copied() {
                         if action.pids.len() == 1 {
                             if let Some(name) = &action.name {
-                                format!("el proceso {pid} ({name})")
+                                format!("process {pid} ({name})")
                             } else {
-                                format!("el proceso {pid}")
+                                format!("process {pid}")
                             }
                         } else {
-                            format!("{} procesos seleccionados", action.pids.len())
+                            format!("{} processes selected", action.pids.len())
                         }
                     } else {
-                        "ningun proceso".to_string()
+                        "no processes".to_string()
                     };
                     ui.label(format!("Se enviara {} a {}?", signal, target));
                     ui.horizontal(|ui| {
                         if ui.button("Confirmar").clicked() {
                             let label = match action.kind {
-                                ProcessActionKind::Terminate => "Terminar",
-                                ProcessActionKind::Kill => "Forzar",
+                                ProcessActionKind::Terminate => "Terminate",
+                                ProcessActionKind::Kill => "Force kill",
                             };
                             let mut successes = 0;
                             let mut failures = Vec::new();
@@ -421,8 +421,8 @@ fn render_process_detail(
     state: &mut ProcessTableState,
     config: &crate::config::AppConfig,
 ) {
-    ui.heading("Detalle del proceso");
-    if ui.button("Cerrar detalle").clicked() {
+    ui.heading("Process details");
+    if ui.button("Close details").clicked() {
         state.selected_pid = None;
         state.pending_action = None;
         state.pending_action_open = false;
@@ -441,7 +441,7 @@ fn render_process_detail(
                 ui.end_row();
             }
 
-            ui.label("Nombre");
+            ui.label("Name");
             ui.label(&process.name);
             ui.end_row();
 
@@ -458,18 +458,18 @@ fn render_process_detail(
             );
             ui.end_row();
 
-            ui.label("Memoria");
+            ui.label("Memory");
             ui.label(format!(
                 "{:.1} MB",
                 process.memory_bytes as f64 / 1024.0 / 1024.0
             ));
             ui.end_row();
 
-            ui.label("Estado");
+            ui.label("State");
             ui.label(&process.state);
             ui.end_row();
 
-            ui.label("Usuario");
+            ui.label("User");
             ui.label(&process.user);
             ui.end_row();
 
@@ -487,10 +487,10 @@ fn render_process_detail(
         });
 
     if is_protected(process.pid) {
-        ui.label("Acciones deshabilitadas para este proceso.");
+        ui.label("Actions disabled for this process.");
     } else {
         ui.horizontal(|ui| {
-            if ui.button("Terminar (SIGTERM)").clicked() {
+            if ui.button("Terminate (SIGTERM)").clicked() {
                 state.pending_action = Some(PendingProcessAction {
                     pids: vec![process.pid],
                     name: Some(process.name.clone()),
@@ -498,7 +498,7 @@ fn render_process_detail(
                 });
                 state.pending_action_open = true;
             }
-            if ui.button("Forzar (SIGKILL)").clicked() {
+            if ui.button("Force kill (SIGKILL)").clicked() {
                 state.pending_action = Some(PendingProcessAction {
                     pids: vec![process.pid],
                     name: Some(process.name.clone()),

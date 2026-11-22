@@ -9,9 +9,9 @@ pub fn show(
     rx_history: &crate::metrics::HistoryBuffer,
     tx_history: &crate::metrics::HistoryBuffer,
 ) {
-    ui.heading("Red");
+    ui.heading("Network");
     let Some(snapshot) = snapshot else {
-        ui.label("Esperando métricas...");
+        ui.label("Waiting for metrics...");
         return;
     };
 
@@ -23,7 +23,7 @@ pub fn show(
             )
         });
 
-    ui.label("Resumen horizontal:");
+    ui.label("Overview:");
     egui::ScrollArea::horizontal()
         .auto_shrink([false, false])
         .show(ui, |ui| {
@@ -31,7 +31,7 @@ pub fn show(
                 interface_card(
                     ui,
                     "Total",
-                    "Agregado",
+                    "Aggregate",
                     global_rx,
                     global_tx,
                     snapshot
@@ -50,7 +50,7 @@ pub fn show(
                     interface_card(
                         ui,
                         &net.name,
-                        "Interfaz",
+                        "Interface",
                         net.received_bytes_per_sec,
                         net.transmitted_bytes_per_sec,
                         net.total_received_bytes,
@@ -78,7 +78,7 @@ pub fn show(
     }
 
     let (rx_x, rx_y) = rolling_bounds(rx_history);
-    ui.label("RX histórico:");
+    ui.label("RX history:");
     Plot::new("net_rx_plot")
         .height(110.0)
         .x_axis_label("Hora")
@@ -97,7 +97,7 @@ pub fn show(
         });
 
     let (tx_x, tx_y) = rolling_bounds(tx_history);
-    ui.label("TX histórico:");
+    ui.label("TX history:");
     Plot::new("net_tx_plot")
         .height(110.0)
         .x_axis_label("Hora")

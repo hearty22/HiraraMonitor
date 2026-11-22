@@ -8,14 +8,14 @@ const LEVEL_WIDTH: f32 = 120.0;
 const ROW_HEIGHT: f32 = 20.0;
 
 pub fn show(ui: &mut Ui, snapshot: Option<&SystemSnapshot>) {
-    ui.heading("Sensores");
+    ui.heading("Sensors");
     let Some(snapshot) = snapshot else {
-        ui.label("Esperando métricas...");
+        ui.label("Waiting for metrics...");
         return;
     };
 
     if snapshot.components.is_empty() {
-        ui.label("No hay sensores disponibles a través de sysinfo.");
+        ui.label("No sensors available through sysinfo.");
         return;
     }
 
@@ -36,19 +36,19 @@ pub fn show(ui: &mut Ui, snapshot: Option<&SystemSnapshot>) {
                 .show(ui, |ui| {
                     ui.add_sized(
                         [COMPONENT_WIDTH, ROW_HEIGHT],
-                        egui::Label::new(egui::RichText::new("Componente").strong()),
+                        egui::Label::new(egui::RichText::new("Component").strong()),
                     );
                     ui.add_sized(
                         [TEMP_WIDTH, ROW_HEIGHT],
-                        egui::Label::new(egui::RichText::new("Actual").strong()),
+                        egui::Label::new(egui::RichText::new("Current").strong()),
                     );
                     ui.add_sized(
                         [TEMP_WIDTH, ROW_HEIGHT],
-                        egui::Label::new(egui::RichText::new("Máxima").strong()),
+                        egui::Label::new(egui::RichText::new("Max").strong()),
                     );
                     ui.add_sized(
                         [LEVEL_WIDTH, ROW_HEIGHT],
-                        egui::Label::new(egui::RichText::new("Nivel").strong()),
+                        egui::Label::new(egui::RichText::new("Level").strong()),
                     );
                     ui.end_row();
 
@@ -97,7 +97,7 @@ pub fn show(ui: &mut Ui, snapshot: Option<&SystemSnapshot>) {
     if let Some(top) = sorted.first() {
         ui.separator();
         ui.label(format!(
-            "Sensor más alto: {} — {:.1} °C / {:.1} °C",
+            "Highest sensor: {} — {:.1} °C / {:.1} °C",
             top.label, top.temperature_celsius, top.max_temperature_celsius
         ));
     }

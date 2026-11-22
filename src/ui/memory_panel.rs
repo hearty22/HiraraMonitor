@@ -12,9 +12,9 @@ pub fn show(
     swap_history: &HistoryBuffer,
     config: &crate::config::AppConfig,
 ) {
-    components::section_card(ui, "Memoria", |ui| {
+    components::section_card(ui, "Memory", |ui| {
         let Some(snapshot) = snapshot else {
-            ui.label("Esperando métricas...");
+            ui.label("Waiting for metrics...");
             return;
         };
 
@@ -25,13 +25,10 @@ pub fn show(
             format::format_bytes(memory.total_bytes)
         ));
         ui.label(format!(
-            "Disponible: {}",
+            "Available: {}",
             format::format_bytes(memory.available_bytes)
         ));
-        ui.label(format!(
-            "Libre: {}",
-            format::format_bytes(memory.free_bytes)
-        ));
+        ui.label(format!("Free: {}", format::format_bytes(memory.free_bytes)));
         let memory_color = crate::ui::components::alert_color(
             snapshot.memory_used_percent(),
             config.mem_warn,
@@ -40,7 +37,7 @@ pub fn show(
         );
         ui.label(
             egui::RichText::new(format!(
-                "Uso: {}",
+                "Usage: {}",
                 format::format_percent(snapshot.memory_used_percent())
             ))
             .color(memory_color),
@@ -64,11 +61,11 @@ pub fn show(
             (min, max)
         };
 
-        ui.label("RAM histórica:");
+        ui.label("RAM history:");
         Plot::new("memory_history_plot")
             .height(120.0)
             .x_axis_label("Hora")
-            .y_axis_label("Uso RAM (%)")
+            .y_axis_label("RAM usage (%)")
             .allow_drag(false)
             .allow_zoom(false)
             .x_axis_formatter(|mark, _| format::format_epoch_time(mark.value))
@@ -92,11 +89,11 @@ pub fn show(
             (min, max)
         };
 
-        ui.label("Swap histórico:");
+        ui.label("Swap history:");
         Plot::new("swap_history_plot")
             .height(120.0)
             .x_axis_label("Hora")
-            .y_axis_label("Uso swap (%)")
+            .y_axis_label("Swap usage (%)")
             .allow_drag(false)
             .allow_zoom(false)
             .x_axis_formatter(|mark, _| format::format_epoch_time(mark.value))

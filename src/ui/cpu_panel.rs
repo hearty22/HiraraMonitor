@@ -14,7 +14,7 @@ pub fn show(
 ) {
     components::section_card(ui, "CPU", |ui| {
         let Some(snapshot) = snapshot else {
-            ui.label("Esperando métricas...");
+            ui.label("Waiting for metrics...");
             return;
         };
 
@@ -26,24 +26,21 @@ pub fn show(
         );
         ui.label(
             egui::RichText::new(format!(
-                "Uso global: {}",
+                "Global usage: {}",
                 format::format_percent(snapshot.cpu_global)
             ))
             .color(cpu_color),
         );
 
         if let Some(temperature) = snapshot.cpu_temperature_celsius {
-            ui.label(format!("Temperatura CPU: {:.1} °C", temperature));
+            ui.label(format!("CPU temperature: {:.1} °C", temperature));
         }
 
         if let Some(core) = snapshot.cpu_cores.first() {
-            ui.label(format!(
-                "Frecuencia del primer núcleo: {} MHz",
-                core.frequency_mhz
-            ));
+            ui.label(format!("First core frequency: {} MHz", core.frequency_mhz));
         }
 
-        ui.label(format!("Núcleos: {}", snapshot.cpu_cores.len()));
+        ui.label(format!("Cores: {}", snapshot.cpu_cores.len()));
 
         let points = cpu_history.raw_points();
         let (min_x, max_x) = if points.is_empty() {
@@ -58,7 +55,7 @@ pub fn show(
         Plot::new("cpu_history_plot")
             .height(180.0)
             .x_axis_label("Hora")
-            .y_axis_label("Uso CPU (%)")
+            .y_axis_label("CPU usage (%)")
             .allow_drag(false)
             .allow_zoom(false)
             .x_axis_formatter(|mark, _| format::format_epoch_time(mark.value))
@@ -73,15 +70,15 @@ pub fn show(
             });
 
         ui.separator();
-        ui.label("Por núcleo:");
+        ui.label("Per core:");
 
         egui::Grid::new("cpu_cores_grid")
             .striped(true)
             .show(ui, |ui| {
-                ui.label("Núcleo");
-                ui.label("Uso");
+                ui.label("Core");
+                ui.label("Usage");
                 ui.label("Frecuencia");
-                ui.label("Temperatura");
+                ui.label("Temperature");
                 ui.end_row();
 
                 for (index, core) in snapshot.cpu_cores.iter().enumerate() {

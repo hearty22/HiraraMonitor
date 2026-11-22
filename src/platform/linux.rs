@@ -60,9 +60,9 @@ fn send(pid: usize, signal: Signal) -> Result<(), String> {
     match system.process(Pid::from(pid)) {
         Some(process) => match process.kill_with(signal) {
             Some(true) => Ok(()),
-            Some(false) => Err(format!("el proceso {pid} no pudo recibir la señal")),
-            None => Err(format!("señal no soportada para el proceso {pid}")),
+            Some(false) => Err(format!("process {pid} could not receive the signal")),
+            None => Err(format!("signal not supported for process {pid}")),
         },
-        None => Err(format!("el proceso {pid} ya no está en ejecución")),
+        None => Err(format!("process {pid} is no longer running")),
     }
 }

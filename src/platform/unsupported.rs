@@ -7,11 +7,11 @@ pub struct UnsupportedProcessActions;
 
 impl ProcessActions for UnsupportedProcessActions {
     fn terminate(_pid: usize) -> Result<(), String> {
-        Err("acciones de procesos no soportadas en esta plataforma".to_string())
+        Err("process actions not supported on this platform".to_string())
     }
 
     fn kill(_pid: usize) -> Result<(), String> {
-        Err("acciones de procesos no soportadas en esta plataforma".to_string())
+        Err("process actions not supported on this platform".to_string())
     }
 }
 

@@ -7,9 +7,9 @@ const VALUE_WIDTH: f32 = 320.0;
 const ROW_HEIGHT: f32 = 22.0;
 
 pub fn show(ui: &mut Ui, snapshot: Option<&SystemSnapshot>) {
-    ui.heading("Sistema");
+    ui.heading("System");
     let Some(snapshot) = snapshot else {
-        ui.label("Esperando métricas...");
+        ui.label("Waiting for metrics...");
         return;
     };
 
@@ -28,8 +28,8 @@ pub fn show(ui: &mut Ui, snapshot: Option<&SystemSnapshot>) {
                     format!("{} {}", system.os_name, system.os_version).as_str(),
                 );
                 row(ui, "Kernel", &system.kernel_version);
-                row(ui, "Arquitectura", &system.architecture);
-                row(ui, "Cantidad de CPU", &system.cpu_count.to_string());
+                row(ui, "Architecture", &system.architecture);
+                row(ui, "CPU count", &system.cpu_count.to_string());
                 row(ui, "Uptime", &format!("{} s", system.uptime_seconds));
                 row(
                     ui,
@@ -52,13 +52,13 @@ pub fn show(ui: &mut Ui, snapshot: Option<&SystemSnapshot>) {
             info_card(
                 ui,
                 "CPU",
-                &format!("{} núcleos", system.cpu_count),
+                &format!("{} cores", system.cpu_count),
                 egui::Color32::from_rgb(70, 130, 210),
             );
             info_card(
                 ui,
                 "RAM",
-                "Monitoreo activo",
+                "Monitoring active",
                 egui::Color32::from_rgb(80, 180, 100),
             );
             info_card(

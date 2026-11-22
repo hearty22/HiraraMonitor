@@ -223,7 +223,7 @@ impl eframe::App for HiraraApp {
         egui::TopBottomPanel::top("top_bar").show(ctx, |ui| {
             ui.horizontal(|ui| {
                 ui.heading("HiraraMonitor");
-                if ui.button("Tema").clicked() {
+                if ui.button("Theme").clicked() {
                     self.config.theme = match self.config.theme {
                         Theme::Light => Theme::Dark,
                         Theme::Dark => Theme::Light,
@@ -231,9 +231,9 @@ impl eframe::App for HiraraApp {
                 }
                 if ui
                     .button(if self.config.visual_alerts {
-                        "Alertas: ON"
+                        "Alerts: ON"
                     } else {
-                        "Alertas: OFF"
+                        "Alerts: OFF"
                     })
                     .clicked()
                 {
@@ -247,7 +247,7 @@ impl eframe::App for HiraraApp {
         });
 
         egui::SidePanel::left("navigation").show(ctx, |ui| {
-            ui.heading("Vistas");
+            ui.heading("Views");
             for view in [
                 View::Cpu,
                 View::Memory,
@@ -259,12 +259,12 @@ impl eframe::App for HiraraApp {
             ] {
                 let label = match view {
                     View::Cpu => "CPU",
-                    View::Memory => "Memoria",
-                    View::Disks => "Discos",
-                    View::Network => "Red",
-                    View::Processes => "Procesos",
-                    View::Sensors => "Sensores",
-                    View::System => "Sistema",
+                    View::Memory => "Memory",
+                    View::Disks => "Disks",
+                    View::Network => "Network",
+                    View::Processes => "Processes",
+                    View::Sensors => "Sensors",
+                    View::System => "System",
                 };
                 if ui
                     .selectable_label(self.selected_view == view, label)

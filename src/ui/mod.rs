@@ -46,16 +46,16 @@ impl ProcessSort {
         match self {
             Self::PidAsc => "PID asc",
             Self::PidDesc => "PID desc",
-            Self::NameAsc => "Nombre asc",
-            Self::NameDesc => "Nombre desc",
+            Self::NameAsc => "Name asc",
+            Self::NameDesc => "Name desc",
             Self::CpuAsc => "CPU asc",
             Self::CpuDesc => "CPU desc",
-            Self::MemoryAsc => "Memoria asc",
-            Self::MemoryDesc => "Memoria desc",
-            Self::StateAsc => "Estado asc",
-            Self::StateDesc => "Estado desc",
-            Self::UserAsc => "Usuario asc",
-            Self::UserDesc => "Usuario desc",
+            Self::MemoryAsc => "Memory asc",
+            Self::MemoryDesc => "Memory desc",
+            Self::StateAsc => "State asc",
+            Self::StateDesc => "State desc",
+            Self::UserAsc => "User asc",
+            Self::UserDesc => "User desc",
         }
     }
 
