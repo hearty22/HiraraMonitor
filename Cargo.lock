@@ -2098,7 +2098,6 @@ dependencies = [
  "thiserror 2.0.21",
  "toml",
  "tray-icon",
- "x11-dl",
 ]
 
 [[package]]
