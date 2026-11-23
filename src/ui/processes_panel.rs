@@ -36,12 +36,12 @@ pub fn show(
             .max(120.0);
 
     ui.horizontal(|ui| {
-        ui.label("Filtro:");
+        ui.label("Filter:");
         if ui.text_edit_singleline(&mut state.filter).changed() {
             state.page = 0;
         }
 
-        ui.label("Orden:");
+        ui.label("Sort:");
         egui::ComboBox::from_label("sort")
             .selected_text(state.sort.label())
             .show_ui(ui, |ui| {
@@ -112,11 +112,11 @@ pub fn show(
     let end = (start + state.page_size).min(filtered.len());
 
     ui.horizontal(|ui| {
-        if ui.button("Anterior").clicked() && state.page > 0 {
+        if ui.button("Previous").clicked() && state.page > 0 {
             state.page -= 1;
         }
         ui.label(format!("Page {} / {}", state.page + 1, total_pages));
-        if ui.button("Siguiente").clicked() && state.page + 1 < total_pages {
+        if ui.button("Next").clicked() && state.page + 1 < total_pages {
             state.page += 1;
         }
         ui.label(format!(
@@ -401,7 +401,7 @@ pub fn show(
                             state.pending_action = None;
                             state.pending_action_open = false;
                         }
-                        if ui.button("Cancelar").clicked() {
+                        if ui.button("Cancel").clicked() {
                             state.pending_action = None;
                             state.pending_action_open = false;
                         }
