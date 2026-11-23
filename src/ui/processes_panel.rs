@@ -94,7 +94,7 @@ pub fn show(
     filtered.sort_by(|a, b| state.sort.compare(a, b));
 
     ui.label(format!(
-        "Top CPU: {}  |  Top memoria: {}",
+        "Top CPU: {}  |  Top memory: {}",
         top_name(&filtered, ProcessSort::CpuDesc),
         top_name(&filtered, ProcessSort::MemoryDesc)
     ));
