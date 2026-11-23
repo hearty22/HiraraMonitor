@@ -81,7 +81,7 @@ pub fn show(
     ui.label("RX history:");
     Plot::new("net_rx_plot")
         .height(110.0)
-        .x_axis_label("Hora")
+        .x_axis_label("Time")
         .y_axis_label("RX (B/s)")
         .allow_drag(false)
         .allow_zoom(false)
@@ -100,7 +100,7 @@ pub fn show(
     ui.label("TX history:");
     Plot::new("net_tx_plot")
         .height(110.0)
-        .x_axis_label("Hora")
+        .x_axis_label("Time")
         .y_axis_label("TX (B/s)")
         .allow_drag(false)
         .allow_zoom(false)

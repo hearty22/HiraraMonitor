@@ -54,7 +54,7 @@ pub fn show(
 
         Plot::new("cpu_history_plot")
             .height(180.0)
-            .x_axis_label("Hora")
+            .x_axis_label("Time")
             .y_axis_label("CPU usage (%)")
             .allow_drag(false)
             .allow_zoom(false)
@@ -77,7 +77,7 @@ pub fn show(
             .show(ui, |ui| {
                 ui.label("Core");
                 ui.label("Usage");
-                ui.label("Frecuencia");
+                ui.label("Frequency");
                 ui.label("Temperature");
                 ui.end_row();
 

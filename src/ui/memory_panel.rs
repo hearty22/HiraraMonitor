@@ -64,7 +64,7 @@ pub fn show(
         ui.label("RAM history:");
         Plot::new("memory_history_plot")
             .height(120.0)
-            .x_axis_label("Hora")
+            .x_axis_label("Time")
             .y_axis_label("RAM usage (%)")
             .allow_drag(false)
             .allow_zoom(false)
@@ -92,7 +92,7 @@ pub fn show(
         ui.label("Swap history:");
         Plot::new("swap_history_plot")
             .height(120.0)
-            .x_axis_label("Hora")
+            .x_axis_label("Time")
             .y_axis_label("Swap usage (%)")
             .allow_drag(false)
             .allow_zoom(false)
