@@ -1,5 +1,19 @@
 # Changelog
 
+## Version 0.4.0 - 2026-11-22
+
+### Added
+- Optional system tray with AppIndicator and KSNI backends, plus restore and quit actions.
+- One-line install script that fetches the latest release binary.
+- Demo GIF and screenshots in the README.
+
+### Changed
+- All UI strings translated to English for a consistent public release.
+- CI now also runs on pushes to `main`.
+
+### Fixed
+- Sort combo box no longer renders a redundant label.
+
 ## Version 0.3.0 - 2026-10-27
 
 ### Added

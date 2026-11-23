@@ -1,118 +1,133 @@
 # HiraraMonitor
 
-HiraraMonitor is a desktop system monitor built with Rust and egui, inspired by btop. It ships a native UI with real-time charts and a collector thread that keeps metric refresh outside the render loop.
+![HiraraMonitor demo](assets/demo.gif)
+
+[![Release](https://img.shields.io/github/v/release/hearty22/HiraraMonitor)](https://github.com/hearty22/HiraraMonitor/releases)
+[![CI](https://github.com/hearty22/HiraraMonitor/actions/workflows/ci.yml/badge.svg)](https://github.com/hearty22/HiraraMonitor/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Rust](https://img.shields.io/badge/rust-1.75%2B-orange.svg)](https://www.rust-lang.org)
+
+A native Linux system monitor with a GUI, built in Rust with [egui](https://github.com/emilk/egui).
+Real-time CPU, memory, disk, network, process and sensor views, plus an optional system tray, without leaving the desktop.
+
+## Why I built it
+
+`btop` is excellent, but it lives in a terminal. I wanted the same information in a native window I can keep on a second monitor, with a tray icon I can restore from, and I wanted to learn how far egui could go for a real, stateful desktop app.
+
+The interesting part was not the charts, it was keeping the UI at a stable frame rate while a separate thread reads `/proc` and `sysinfo` every few hundred milliseconds.
 
 ## Features
 
-- CPU monitoring: global and per-core usage, frequency, temperature when available.
-- Memory and swap monitoring with rolling charts.
-- Disk monitoring with usage, filesystem, mount point and read/write throughput.
-- Network monitoring with RX/TX rates and totals.
-- Process monitoring with filter, sorting, pagination, selection, details, safe terminate and kill.
-- Sensors and system metadata views.
-- Light and dark themes with a dedicated theme application.
-- Visual alerts for CPU, RAM and process values with configurable thresholds.
-- Preferences persisted to a TOML file, with CLI precedence.
-- Linux-specific disk throughput from `/proc/diskstats`.
-- Fixed-width layouts for stable process, disk and sensor tables.
+- **CPU**: global and per-core usage, current frequency, temperature when available, rolling chart.
+- **Memory**: RAM and swap usage with history charts.
+- **Disks**: usage, filesystem, mount point, plus read/write throughput from `/proc/diskstats`.
+- **Network**: per-interface RX/TX rates and totals.
+- **Processes**: filter, sorting, pagination, multi-selection, detail window, guarded terminate and kill.
+- **Sensors**: component temperatures with current and maximum values.
+- **System**: hostname, OS, kernel, architecture, uptime and load average.
+- **Extras**: light/dark themes, configurable visual alerts, TOML preferences, optional system tray.
 
-## Build
+## Screenshots
+
+| CPU | Processes |
+|---|---|
+| ![CPU view](assets/screenshots/cpu.png) | ![Processes view](assets/screenshots/processes.png) |
+
+| Disks |
+|---|
+| ![Disks view](assets/screenshots/disks.png) |
+
+## Install
+
+Prebuilt Linux binaries are published on the [releases page](https://github.com/hearty22/HiraraMonitor/releases).
 
 ```bash
+curl -fsSL https://raw.githubusercontent.com/hearty22/HiraraMonitor/main/install.sh | sh
+```
+
+This downloads the latest `x86_64-linux` binary into `~/.local/bin`. Make sure that directory is on your `PATH`.
+
+Runtime dependencies for the tray (Arch):
+
+```bash
+sudo pacman -S gtk3 libappindicator-gtk3
+```
+
+The app runs without the tray if those libraries are missing, but you will see a warning in the logs.
+
+### From source
+
+```bash
+git clone https://github.com/hearty22/HiraraMonitor.git
+cd HiraraMonitor
 cargo build --release
+./target/release/hirara-monitor
 ```
 
-## Run
+Requires a recent stable Rust toolchain and X11. Build without the tray with `--no-default-features`.
+
+## Usage
 
 ```bash
-cargo run --release
+hirara-monitor --refresh-ms 500 --history 300 --dark
 ```
 
-Optional arguments:
+| Flag | Description |
+|---|---|
+| `--refresh-ms <ms>` | Metric refresh interval, minimum 250 ms |
+| `--history <samples>` | Retained samples for charts, clamped to 30..5000 |
+| `--light` / `--dark` | Start with a specific theme |
+| `--config <path>` | Config file path, overrides `HIRARA_CONFIG` |
 
-```bash
-cargo run --release -- --refresh-ms 500 --history 300 --light
-cargo run --release -- --config ./hirara.toml
-```
+Configuration is persisted to `~/.config/hiraramonitor/config.toml` by default.
 
-Available options:
+### Keyboard shortcuts
 
-- `--refresh-ms <milliseconds>`: metric refresh interval; minimum 250ms.
-- `--history <samples>`: retained sample count; clamped to 30..5000.
-- `--light`: start in light theme.
-- `--dark`: start in dark theme.
-- `--config <path>`: config file path. Environment override: `HIRARA_CONFIG`.
+| Key | Action |
+|---|---|
+| `1`–`7` | Switch view |
+| `T` | Toggle theme |
 
-Configuration paths:
-
-- default on Linux: `~/.config/hiraramonitor/config.toml`
-- explicit path always takes priority.
+Process rows support single and multi-select (Ctrl/Shift). Terminate and force-kill actions ask for confirmation, and PID 1 plus the monitor's own process are protected.
 
 ## Architecture
 
-The app separates collection, snapshot publishing, UI state and rendering.
-
-- `collector.rs` refreshes system information on a background thread.
-- `snapshot.rs` defines the immutable data model.
-- `history.rs` stores circular rolling buffers for charts.
-- `app.rs` ingests snapshots, owns routing and persisted UI preferences.
-- `ui/*` renders each view.
-- `platform/*` contains Linux and unsupported implementations.
-- Settings persist to the file chosen by `--config`/`HIRARA_CONFIG`, or the default path on Linux.
-
-See `docs/ARCHITECTURE.md` for details.
-
-## Keyboard shortcuts
-
-- `1`–`7`: switch views
-- `T`: toggle theme
-- Top bar button: toggle visual alerts
-
-## Controls
-
-- Process selection: click the PID cell.
-- Process floating detail: opens for the selected PID.
-- Sort columns: click a header to toggle direction.
-- Multi-select: Ctrl/Shift click process rows.
-- Batch actions: "Terminar seleccionados" and "Forzar seleccion" require confirmation.
-
-## Project layout
+The app separates collection from rendering:
 
 ```text
-src/
-├── app.rs
-├── config.rs
-├── config_store.rs
-├── main.rs
-├── metrics/
-│   ├── collector.rs
-│   ├── history.rs
-│   └── snapshot.rs
-├── platform/
-│   ├── linux.rs
-│   ├── mod.rs
-│   └── unsupported.rs
-├── ui/
-│   ├── components.rs
-│   ├── cpu_panel.rs
-│   ├── disks_panel.rs
-│   ├── memory_panel.rs
-│   ├── network_panel.rs
-│   ├── processes_panel.rs
-│   ├── sensors_panel.rs
-│   ├── system_panel.rs
-│   └── theme.rs
-└── util/
-    └── format.rs
+sysinfo + /proc
+      │
+      ▼
+Collector thread ──► Arc<SystemSnapshot> ──► sync_channel(1)
+                                                  │
+                                                  ▼
+                                          App state + history
+                                                  │
+                                                  ▼
+                                             egui panels
 ```
 
-## Notes
+- `metrics/collector.rs` refreshes system information on a background thread with backoff on failure.
+- `metrics/snapshot.rs` defines immutable snapshots shared through `Arc`.
+- `metrics/history.rs` keeps fixed-capacity circular buffers for charts.
+- `ui/` renders each view from the latest snapshot without blocking the render loop.
+- `platform/` isolates Linux-specific code such as disk throughput.
 
-- Linux is the supported target; unsupported targets provide fallback disk metrics.
-- GPU monitoring is intentionally not implemented.
-- Process kill/terminate is implemented with PID 1 and own-process protection.
-- The UI is intentionally read-only except for guarded process signals.
-- Release builds and CI are available for Linux.
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full breakdown.
+
+## Engineering notes
+
+- Collector and render loop communicate through a bounded channel, so a slow UI never queues unbounded snapshots.
+- Process actions send signals through a small platform layer and report per-PID results.
+- The system tray has AppIndicator and KSNI backends, which makes it work on desktops and bars like Polybar.
+- CI runs `cargo fmt --check`, `cargo clippy -D warnings` and `cargo test` on every pull request; tags publish release binaries automatically.
+
+## Limitations
+
+- Linux only. Other targets compile with fallback disk metrics.
+- GPU monitoring is intentionally out of scope.
+- Sensor availability depends on what `sysinfo` exposes on your hardware.
+- The UI is read-only except for guarded process signals.
 
 ## License
 
