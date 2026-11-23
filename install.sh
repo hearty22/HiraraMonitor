@@ -43,7 +43,7 @@ trap 'rm -f "$tmp"' EXIT HUP INT TERM
 
 echo "Downloading $(basename "$url")..."
 curl -fsSL "$url" -o "$tmp"
-chmod +x "$tmp"
+chmod 755 "$tmp"
 
 mkdir -p "$PREFIX"
 mv "$tmp" "$PREFIX/$BIN"
