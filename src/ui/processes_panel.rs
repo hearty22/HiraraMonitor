@@ -42,7 +42,7 @@ pub fn show(
         }
 
         ui.label("Sort:");
-        egui::ComboBox::from_label("sort")
+        egui::ComboBox::from_id_source("process_sort")
             .selected_text(state.sort.label())
             .show_ui(ui, |ui| {
                 ui.selectable_value(
